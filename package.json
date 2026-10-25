@@ -1,0 +1,14 @@
+{
+  "name": "catalogo-jg-innovacion-final",
+  "version": "1.2.0",
+  "description": "Catálogo con separación de vistas, login JG2026admin y comprobante de pedido",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "pg": "^8.11.5"
+  }
+}
