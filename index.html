@@ -654,6 +654,52 @@ irAVista('publica');
 function cerrarModalDetalle() { document.getElementById('modal-detalle').classList.remove('active'); }
 function cerrarModalComprobante() { document.getElementById('modal-comprobante').classList.remove('active'); }
 window.onload = cargarAplicacionCompleta;
+      // ================= FUNCIONES DE ACCESO Y NAVEGACIÓN ADMINISTRATIVA =================
+
+    // Validación segura de contraseña
+    async function solicitarAccesoAdmin() {
+      if(localStorage.getItem('admin_session_token') === "JG2026admin") { 
+        return irAVista('admin'); 
+      }
+      const clave = prompt("Por favor ingresa la clave de administrador para acceder:");
+      if (!clave) return;
+      
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clave })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('admin_session_token', data.token);
+        irAVista('admin');
+      } else { 
+        alert("Contraseña incorrecta. Acceso restringido."); 
+      }
+    }
+
+    // Enrutador visual SPA (Cambio de pantallas rápido)
+    function irAVista(vista) {
+      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+      if(vista === 'publica') {
+        document.getElementById('vista-publica').classList.add('active');
+        document.getElementById('btn-cambiar-vista').style.display = "block";
+      } else {
+        document.getElementById('vista-admin').classList.add('active');
+        document.getElementById('btn-cambiar-vista').style.display = "none";
+      }
+    }
+
+    // Cierre de sesión seguro
+    function cerrarSesionAdmin() { 
+      localStorage.removeItem('admin_session_token'); 
+      irAVista('publica'); 
+    }
+    
+    // Controladores de cierre para ventanas modales
+    function cerrarModalDetalle() { document.getElementById('modal-detalle').classList.remove('active'); }
+    function cerrarModalComprobante() { document.getElementById('modal-comprobante').classList.remove('active'); }
+
   </script>
 </body>
 </html>
