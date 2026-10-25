@@ -13,15 +13,16 @@ const pool = new Pool({
 
 const CLAVE_CORRECTA = "JG2026admin";
 
+// Reemplaza la función antigua por esta en api/index.js
 function verificarAdmin(req, res, next) {
   const token = req.headers['authorization'];
-  if (token === CLAVE_CORRECTA) {
+  // Validamos si la clave es idéntica a la configurada
+  if (token === CLAVE_CORRECTA || token === `Bearer ${CLAVE_CORRECTA}`) {
     next();
   } else {
     res.status(401).json({ error: "Acceso denegado. Contraseña incorrecta." });
   }
 }
-
 async function inicializarBD() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_productos (
