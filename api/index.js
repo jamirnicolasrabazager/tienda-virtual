@@ -7,8 +7,10 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DATABASE_URL + "?sslmode=require",
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 const CLAVE_CORRECTA = "JG2026admin";
