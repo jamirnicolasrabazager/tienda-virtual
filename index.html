@@ -131,7 +131,8 @@
     }
     .modal-close { 
       position: absolute; 
-      right: 20px;  top: 15px; 
+      right: 20px; 
+      top: 15px; 
       font-size: 24px; 
       cursor: pointer; 
       color: #5f6368; 
@@ -299,7 +300,11 @@
           <label style="font-weight:bold;">Cantidad Deseada:</label>
           <input type="number" id="md-cantidad" value="1" min="1" class="form-control" style="width:80px; display:inline-block; margin-left:10px;" oninput="actualizarPrecioTotalFicha()">
         </div>
+        <!-- Caja de Cálculo Dinámico de Importes -->
         <div style="font-size:20px; font-weight:bold; margin-top:20px; background:#e8f0fe; padding:10px; border-radius:6px; color:#1557b0;">
+          Precio Final: Bs. <span id="md-precio-total">0.00</span>
+        </div>
+        
         <!-- Botón para procesar la orden del cliente -->
         <button class="btn" style="width:100%; margin-top:20px; background:#27ae60;" onclick="generarComprobantePedidoFinal()">Confirmar y Solicitar Pedido</button>
       </div>
@@ -324,7 +329,7 @@
     </div>
   </div>
 
-  <!-- ================= LOGICA DE PROGRAMACIÓN (JAVASCRIPT) ================= -->
+  <!-- ================= LÓGICA DE PROGRAMACIÓN (JAVASCRIPT) ================= -->
   <script>
     let cacheProductos = [];
     let cacheConfig = {};
@@ -408,85 +413,42 @@
       );
       renderizarCatalogoPublico(filtrados);
     }
-        // Carga la información de variantes y unidades en el modal interactivo de compra
+    // Carga la información de variantes y unidades en el modal interactivo de compra
     function abrirDetalleFichaProducto(p) {
       productoSeleccionadoActual = p;
       tallaSeleccionada = null;
       colorSeleccionada = null;
+      document.getElementById('md-cantidad').value = 1;
       
-      // Reiniciar cantidad predeterminada
-      if (document.getElementById('md-cantidad')) {
-        document.getElementById('md-cantidad').value = 1;
-      }
+      document.getElementById('md-titulo').innerText = p.nombre || '';
+      document.getElementById('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
+      document.getElementById('md-precio-unitario').innerText = `Bs. ${parseFloat(p.precio).toFixed(2)}`;
+      document.getElementById('md-imagen').src = p.imagen_url || 'https://placeholder.com';
       
-      // Cargar textos descriptivos
-      if (document.getElementById('md-titulo')) document.getElementById('md-titulo').innerText = p.nombre || '';
-      if (document.getElementById('md-descripcion')) document.getElementById('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
-      if (document.getElementById('md-precio-unitario')) document.getElementById('md-precio-unitario').innerText = `Bs. ${parseFloat(p.precio).toFixed(2)}`;
-      if (document.getElementById('md-imagen')) document.getElementById('md-imagen').src = p.imagen_url || 'https://placeholder.com';
-      
-      // Validar y renderizar Tallas
+      // Procesamiento de selectores de tallas
       const divTallas = document.getElementById('md-lista-tallas');
-      const contenedorTallas = document.getElementById('md-contenedor-tallas');
-      if (divTallas) {
+      if (p.tallas && p.tallas.trim() !== "") {
         divTallas.innerHTML = "";
-        if (p.tallas && p.tallas.trim() !== "") {
-          p.tallas.split(',').forEach(t => {
-            const s = document.createElement('div');
-            s.className = 'selector-item';
-            s.innerText = t.trim();
-            s.onclick = () => { 
-              [...divTallas.children].forEach(c => c.classList.remove('selected')); 
-              s.classList.add('selected'); 
-              tallaSeleccionada = t.trim(); 
-            };
-            divTallas.appendChild(s);
-          });
-          if (contenedorTallas) contenedorTallas.style.display = 'block';
-        } else {
-          if (contenedorTallas) contenedorTallas.style.display = 'none';
-        }
+        p.tallas.split(',').forEach(t => {
+          const s = document.createElement('div');
+          s.className = 'selector-item';
+          s.innerText = t.trim();
+          s.onclick = () => { 
+            [...divTallas.children].forEach(c=>c.classList.remove('selected')); 
+            s.classList.add('selected'); 
+            tallaSeleccionada = t.trim(); 
+          };
+          divTallas.appendChild(s);
+        });
+        document.getElementById('md-contenedor-tallas').style.display = 'block';
+      } else { 
+        document.getElementById('md-contenedor-tallas').style.display = 'none'; 
       }
-
-      // Validar y renderizar Colores
-      const divColores = document.getElementById('md-lista-colores');
-      const contenedorColores = document.getElementById('md-contenedor-colores');
-      if (divColores) {
-        divColores.innerHTML = "";
-        if (p.colores && p.colores.trim() !== "") {
-          p.colores.split(',').forEach(c => {
-            const s = document.createElement('div');
-            s.className = 'selector-item';
-            s.innerText = c.trim();
-            s.onclick = () => { 
-              [...divColores.children].forEach(x => x.classList.remove('selected')); 
-              s.classList.add('selected'); 
-              colorSeleccionada = c.trim(); 
-            };
-            divColores.appendChild(s);
-          });
-          if (contenedorColores) contenedorColores.style.display = 'block';
-        } else {
-          if (contenedorColores) contenedorColores.style.display = 'none';
-        }
-      }
-
-      // Calcular el precio final inicial
-      actualizarPrecioTotalFicha();
-      
-      // Mostrar físicamente la ventana emergente en pantalla
-      const modalDetalle = document.getElementById('modal-detalle');
-      if (modalDetalle) {
-        modalDetalle.classList.add('active');
-      } else {
-        alert("Falta el contenedor modal-detalle en el documento HTML.");
-      }
-    }
 
       // Procesamiento de selectores de colores
       const divColores = document.getElementById('md-lista-colores');
-      divColores.innerHTML = "";
       if (p.colores && p.colores.trim() !== "") {
+        divColores.innerHTML = "";
         p.colores.split(',').forEach(c => {
           const s = document.createElement('div');
           s.className = 'selector-item';
@@ -504,6 +466,7 @@
       }
 
       actualizarPrecioTotalFicha();
+      document.getElementById('modal-detalle').classList.add('active');
     }
 
     // Multiplicador automático de cantidad por valor unitario
@@ -678,4 +641,5 @@
   </script>
 </body>
 </html>
+
 
