@@ -408,36 +408,80 @@
       );
       renderizarCatalogoPublico(filtrados);
     }
-    // Carga la información de variantes y unidades en el modal interactivo
+        // Carga la información de variantes y unidades en el modal interactivo de compra
     function abrirDetalleFichaProducto(p) {
       productoSeleccionadoActual = p;
       tallaSeleccionada = null;
       colorSeleccionada = null;
-      document.getElementById('md-cantidad').value = 1;
-      document.getElementById('md-titulo').innerText = p.nombre;
-      document.getElementById('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
-      document.getElementById('md-precio-unitario').innerText = `Bs. ${parseFloat(p.precio).toFixed(2)}`;
-      document.getElementById('md-imagen').src = p.imagen_url || 'https://placeholder.com';
       
-      // Procesamiento de selectores de tallas
-      const divTallas = document.getElementById('md-lista-tallas');
-      divTallas.innerHTML = "";
-      if (p.tallas && p.tallas.trim() !== "") {
-        p.tallas.split(',').forEach(t => {
-          const s = document.createElement('div');
-          s.className = 'selector-item';
-          s.innerText = t.trim();
-          s.onclick = () => { 
-            [...divTallas.children].forEach(c=>c.classList.remove('selected')); 
-            s.classList.add('selected'); 
-            tallaSeleccionada = t.trim(); 
-          };
-          divTallas.appendChild(s);
-        });
-        document.getElementById('md-contenedor-tallas').style.display = 'block';
-      } else { 
-        document.getElementById('md-contenedor-tallas').style.display = 'none'; 
+      // Reiniciar cantidad predeterminada
+      if (document.getElementById('md-cantidad')) {
+        document.getElementById('md-cantidad').value = 1;
       }
+      
+      // Cargar textos descriptivos
+      if (document.getElementById('md-titulo')) document.getElementById('md-titulo').innerText = p.nombre || '';
+      if (document.getElementById('md-descripcion')) document.getElementById('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
+      if (document.getElementById('md-precio-unitario')) document.getElementById('md-precio-unitario').innerText = `Bs. ${parseFloat(p.precio).toFixed(2)}`;
+      if (document.getElementById('md-imagen')) document.getElementById('md-imagen').src = p.imagen_url || 'https://placeholder.com';
+      
+      // Validar y renderizar Tallas
+      const divTallas = document.getElementById('md-lista-tallas');
+      const contenedorTallas = document.getElementById('md-contenedor-tallas');
+      if (divTallas) {
+        divTallas.innerHTML = "";
+        if (p.tallas && p.tallas.trim() !== "") {
+          p.tallas.split(',').forEach(t => {
+            const s = document.createElement('div');
+            s.className = 'selector-item';
+            s.innerText = t.trim();
+            s.onclick = () => { 
+              [...divTallas.children].forEach(c => c.classList.remove('selected')); 
+              s.classList.add('selected'); 
+              tallaSeleccionada = t.trim(); 
+            };
+            divTallas.appendChild(s);
+          });
+          if (contenedorTallas) contenedorTallas.style.display = 'block';
+        } else {
+          if (contenedorTallas) contenedorTallas.style.display = 'none';
+        }
+      }
+
+      // Validar y renderizar Colores
+      const divColores = document.getElementById('md-lista-colores');
+      const contenedorColores = document.getElementById('md-contenedor-colores');
+      if (divColores) {
+        divColores.innerHTML = "";
+        if (p.colores && p.colores.trim() !== "") {
+          p.colores.split(',').forEach(c => {
+            const s = document.createElement('div');
+            s.className = 'selector-item';
+            s.innerText = c.trim();
+            s.onclick = () => { 
+              [...divColores.children].forEach(x => x.classList.remove('selected')); 
+              s.classList.add('selected'); 
+              colorSeleccionada = c.trim(); 
+            };
+            divColores.appendChild(s);
+          });
+          if (contenedorColores) contenedorColores.style.display = 'block';
+        } else {
+          if (contenedorColores) contenedorColores.style.display = 'none';
+        }
+      }
+
+      // Calcular el precio final inicial
+      actualizarPrecioTotalFicha();
+      
+      // Mostrar físicamente la ventana emergente en pantalla
+      const modalDetalle = document.getElementById('modal-detalle');
+      if (modalDetalle) {
+        modalDetalle.classList.add('active');
+      } else {
+        alert("Falta el contenedor modal-detalle en el documento HTML.");
+      }
+    }
 
       // Procesamiento de selectores de colores
       const divColores = document.getElementById('md-lista-colores');
