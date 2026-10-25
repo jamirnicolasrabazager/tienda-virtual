@@ -5,54 +5,213 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="txt-meta-titulo">Catálogo Profesional</title>
   <style>
-    :root { --primary: #1a73e8; --dark: #202124; --light: #f8f9fa; --border: #dadce0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f1f3f4; color: var(--dark); }
-    header { background: white; border-bottom: 1px solid var(--border); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 22px; font-weight: bold; color: var(--primary); cursor: pointer; }
-    .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-    
-    .view-section { display: none; }
-    .view-section.active { display: block; }
-
-    .search-bar { background: white; padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border); display: flex; max-width: 600px; margin: 0 auto 30px auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .search-bar input { width: 100%; border: none; outline: none; font-size: 16px; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-    .product-card { background: white; border-radius: 8px; border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
-    .product-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .product-card img { width: 100%; height: 240px; object-fit: cover; background: var(--light); }
-    .product-card-body { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
-    .product-card h3 { margin: 0 0 10px 0; font-size: 18px; }
-    .product-card .price { font-size: 20px; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
-
-    .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
-    .modal.active { display: flex; }
-    .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 700px; width: 90%; display: grid; grid-template-columns: 1fr 1fr; gap: 25px; max-height: 90vh; overflow-y: auto; position: relative; }
-    .modal-close { position: absolute; right: 20px; top: 15px; font-size: 24px; cursor: pointer; color: #5f6368; }
-    .modal-content img { width:100%; border-radius:8px; object-fit: cover; max-height: 350px; }
-
-    .selector-box { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
-    .selector-item { padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 14px; background: white; }
-    .selector-item.selected { border-color: var(--primary); background: #e8f0fe; color: var(--primary); font-weight: bold; }
-    
-    .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 15px; transition: background 0.2s; text-align: center; }
-    .btn:hover { background: #1557b0; }
-    .btn-secondary { background: #5f6368; }
-    .btn-secondary:hover { background: #45474a; }
-    .btn-danger { background: #d93025; }
-    .btn-danger:hover { background: #b31412; }
-    
-    .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; margin-bottom: 15px; font-size: 14px; }
-    .admin-container { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-    .admin-box { background: white; border: 1px solid var(--border); padding: 25px; border-radius: 8px; }
-    @media (max-width: 768px) {
-      .modal-content { grid-template-columns: 1fr; }
-      .admin-container { grid-template-columns: 1fr; }
+    :root { 
+      --primary: #1a73e8; 
+      --dark: #202124; 
+      --light: #f8f9fa; 
+      --border: #dadce0; 
+      --danger: #d93025;
+      --success: #27ae60;
+    }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; 
+      background: #f1f3f4; 
+      color: var(--dark); 
+    }
+    header { 
+      background: white; 
+      border-bottom: 1px solid var(--border); 
+      padding: 15px 30px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
+    .logo { 
+      font-size: 22px; 
+      font-weight: bold; 
+      color: var(--primary); 
+      cursor: pointer; 
+    }
+    .container { 
+      max-width: 1200px; 
+      margin: 30px auto; 
+      padding: 0 20px; 
+    }
+    .view-section { 
+      display: none; 
+    }
+    .view-section.active { 
+      display: block; 
+    }
+    .search-bar { 
+      background: white; 
+      padding: 12px 20px; 
+      border-radius: 8px; 
+      border: 1px solid var(--border); 
+      display: flex; 
+      max-width: 600px; 
+      margin: 0 auto 30px auto; 
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+    }
+    .search-bar input { 
+      width: 100%; 
+      border: none; 
+      outline: none; 
+      font-size: 16px; 
+    }
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+      gap: 25px; 
+    }
+    .product-card { 
+      background: white; 
+      border-radius: 8px; 
+      border: 1px solid var(--border); 
+      overflow: hidden; 
+      display: flex; 
+      flex-direction: column; 
+      transition: transform 0.2s, box-shadow 0.2s; 
+      cursor: pointer; 
+    }
+    .product-card:hover { 
+      transform: translateY(-4px); 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+    }
+    .product-card img { 
+      width: 100%; 
+      height: 240px; 
+      object-fit: cover; 
+      background: var(--light); 
+    }
+    .product-card-body { 
+      padding: 15px; 
+      display: flex; 
+      flex-direction: column; 
+      flex-grow: 1; 
+    }
+    .product-card h3 { 
+      margin: 0 0 10px 0; 
+      font-size: 18px; 
+    }
+    .product-card .price { 
+      font-size: 20px; 
+      font-weight: bold; 
+      color: var(--primary); 
+      margin-bottom: 10px; 
+    }
+    .modal { 
+      display: none; 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(0,0,0,0.5); 
+      z-index: 1000; 
+      align-items: center; 
+      justify-content: center; 
+    }
+    .modal.active { 
+      display: flex; 
+    }
+    .modal-content { 
+      background: white; 
+      padding: 30px; 
+      border-radius: 12px; 
+      max-width: 700px; 
+      width: 90%; 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 25px; 
+      max-height: 90vh; 
+      overflow-y: auto; 
+      position: relative; 
+    }
+    .modal-close { 
+      position: absolute; 
+      right: 20px; 
+      top: 15px; 
+      font-size: 24px; 
+      cursor: pointer; 
+      color: #5f6368; 
+    }
+    .modal-content img { 
+      width: 100%; 
+      border-radius: 8px; 
+      object-fit: cover; 
+    }
+    .selector-box { 
+      display: flex; 
+      gap: 8px; 
+      margin: 10px 0; 
+      flex-wrap: wrap; 
+    }
+    .selector-item { 
+      padding: 6px 12px; 
+      border: 1px solid var(--border); 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 14px; 
+      user-select: none;
+    }
+    .selector-item.selected { 
+      border-color: var(--primary); 
+      background: #e8f0fe; 
+      color: var(--primary); 
+      font-weight: bold; 
+    }
+    .btn { 
+      background: var(--primary); 
+      color: white; 
+      border: none; 
+      padding: 12px 20px; 
+      border-radius: 6px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      font-size: 15px; 
+      transition: background 0.2s; 
+    }
+    .btn:hover { 
+      background: #1557b0; 
+    }
+    .btn-secondary { 
+      background: #5f6368; 
+    }
+    .btn-secondary:hover { 
+      background: #45474a; 
+    }
+    .btn-danger { 
+      background: var(--danger); 
+    }
+    .btn-danger:hover { 
+      background: #b31412; 
+    }
+    .form-control { 
+      width: 100%; 
+      padding: 10px; 
+      border: 1px solid var(--border); 
+      border-radius: 6px; 
+      box-sizing: border-box; 
+      margin-bottom: 15px; 
+      font-size: 14px; 
+    }
+    .admin-container { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 30px; 
+    }
+    .admin-box { 
+      background: white; 
+      border: 1px solid var(--border); 
+      padding: 25px; 
+      border-radius: 8px; 
     }
   </style>
 </head>
 <body>
-
+  <!-- ENCABEZADO PRINCIPAL DE LA WEB -->
   <header>
     <div class="logo" id="txt-logo-header" onclick="irAVista('publica')">JG Tienda Digital</div>
     <div id="nav-buttons">
@@ -60,20 +219,22 @@
     </div>
   </header>
 
+  <!-- CONTENEDOR GENERAL DE LAS VISTAS SPA -->
   <div class="container">
     
-    <!-- ================= INTERFAZ PÚBLICA DEL CLIENTE ================= -->
+    <!-- VISTA INTERFAZ PÚBLICA (CLIENTES) -->
     <div id="vista-publica" class="view-section active">
       <h2 id="txt-bienvenida" style="text-align: center; margin-bottom: 25px;">Explora Nuestro Catálogo</h2>
       
+      <!-- Lupa de Búsqueda Integrada -->
       <div class="search-bar">
         <input type="text" id="buscador-input" placeholder="¿Qué estás buscando hoy?..." oninput="filtrarCatalogo()">
       </div>
-
+      
+      <!-- Contenedor Dinámico para Tarjetas de Productos -->
       <div class="grid" id="catalogo-grid-container"></div>
     </div>
-
-    <!-- ================= INTERFAZ DE ADMINISTRACIÓN ================= -->
+    <!-- VISTA INTERFAZ ADMINISTRADOR (OCULTA POR DEFECTO) -->
     <div id="vista-admin" class="view-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 25px;">
         <h2>🛠️ Panel de Control Administrativo</h2>
@@ -81,28 +242,33 @@
       </div>
       
       <div class="admin-container">
-        <!-- Bloque 1: Configuración Estética y Textos -->
+        <!-- Bloque Izquierdo: Configuración del Sitio -->
         <div class="admin-box">
           <h3>Modificar Aspecto y Textos Globales</h3>
-          <div style="margin-bottom: 10px;"><label>Título de la pestaña / Meta:</label></div>
-          <input type="text" id="cfg-meta-titulo" class="form-control">
-          
-          <div style="margin-bottom: 10px;"><label>Nombre Comercial (Header):</label></div>
-          <input type="text" id="cfg-logo-header" class="form-control">
-          
-          <div style="margin-bottom: 10px;"><label>Texto de Bienvenida Principal:</label></div>
-          <input type="text" id="cfg-bienvenida" class="form-control">
-
-          <div style="margin-bottom: 10px;"><label>WhatsApp General por Defecto:</label></div>
-          <input type="text" id="cfg-whatsapp" class="form-control">
-
-          <div style="margin-bottom: 10px;"><label>Enlace General de Redes Sociales (Facebook/Instagram):</label></div>
-          <input type="text" id="cfg-redes" class="form-control">
-          
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Título de la pestaña / Meta:</label>
+            <input type="text" id="cfg-meta-titulo" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Nombre Comercial (Header):</label>
+            <input type="text" id="cfg-logo-header" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Texto de Bienvenida Principal:</label>
+            <input type="text" id="cfg-bienvenida" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">WhatsApp General por Defecto:</label>
+            <input type="text" id="cfg-whatsapp" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Enlace General de Redes Sociales (Facebook/Instagram):</label>
+            <input type="text" id="cfg-redes" class="form-control">
+          </div>
           <button class="btn" onclick="guardarConfiguracionGlobal()">Guardar Cambios de Interfaz</button>
         </div>
 
-        <!-- Bloque 2: Publicar Nuevos Productos -->
+        <!-- Bloque Derecho: Publicación de Nuevos Productos -->
         <div class="admin-box">
           <h3>Publicar Nuevo Artículo en Catálogo</h3>
           <input type="text" id="prod-nombre" placeholder="Nombre del Producto" class="form-control" required>
@@ -111,82 +277,87 @@
           <input type="text" id="prod-tallas" placeholder="Tallas disponibles (ej: S, M, L, XL)" class="form-control">
           <input type="text" id="prod-colores" placeholder="Colores disponibles (ej: Negro, Azul, Blanco)" class="form-control">
           
-          <div style="margin-bottom: 10px;"><label>Imagen del Producto:</label></div>
-          <input type="file" id="prod-file" class="form-control" accept="image/*" onchange="procesarImagenBase64()">
-          <input type="hidden" id="prod-imagen-b64">
-
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Imagen del Producto:</label>
+            <input type="file" id="prod-file" class="form-control" accept="image/*" onchange="procesarImagenBase64()">
+            <input type="hidden" id="prod-imagen-b64">
+          </div>
+          
           <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
           <h4>Redes de Contacto Específicas del Producto (Opcional)</h4>
-          <input type="text" id="prod-whatsapp" placeholder="WhatsApp Específico" class="form-control">
+          <input type="text" id="prod-whatsapp" placeholder="WhatsApp Específico para este producto" class="form-control">
           <input type="text" id="prod-redes-fb" placeholder="Enlace de Facebook para este producto" class="form-control">
           <input type="text" id="prod-redes-ig" placeholder="Enlace de Instagram para este producto" class="form-control">
-
           <button class="btn" style="background:#27ae60; width:100%;" onclick="publicarArticuloNuevo()">Publicar Producto Permanentemente</button>
         </div>
       </div>
 
+      <!-- Sección de Control de Inventario y Eliminación -->
       <div class="admin-box" style="margin-top:30px;">
         <h3>Inventario Activo (Gestionar Eliminaciones)</h3>
         <div id="tabla-gestion-productos"></div>
       </div>
     </div>
 
-  </div>
-
-  <!-- ================= DETALLE INTERACTIVO DE PRODUCTO ================= -->
+  </div> <!-- Cierre del div .container principal -->
+  <!-- ================= MODAL DE DETALLE INTERACTIVO DEL PRODUCTO ================= -->
   <div class="modal" id="modal-detalle">
     <div class="modal-content">
       <span class="modal-close" onclick="cerrarModalDetalle()">×</span>
-      <div id="md-col-izquierda">
-        <img id="md-imagen" src="" alt="" style="width:100%;">
+      <div>
+        <img id="md-imagen" src="" alt="Vista previa del artículo">
       </div>
-      <div id="md-col-derecha">
+      <div>
         <h2 id="md-titulo" style="margin-top:0;"></h2>
         <p id="md-descripcion" style="color:#5f6368; line-height:1.5;"></p>
         <div style="font-size:24px; font-weight:bold; color:var(--primary); margin: 15px 0;" id="md-precio-unitario"></div>
         
+        <!-- Selectores Dinámicos de Tallas -->
         <div id="md-contenedor-tallas">
           <label style="font-weight:bold;">Selecciona Talla:</label>
           <div class="selector-box" id="md-lista-tallas"></div>
         </div>
 
+        <!-- Selectores Dinámicos de Colores -->
         <div id="md-contenedor-colores" style="margin-top:15px;">
           <label style="font-weight:bold;">Selecciona Color:</label>
           <div class="selector-box" id="md-lista-colores"></div>
         </div>
 
+        <!-- Contador Reactivo de Unidades -->
         <div style="margin-top:20px;">
           <label style="font-weight:bold;">Cantidad Deseada:</label>
-          <input type="number" id="md-cantidad" value="1" min="1" class="form-control" style="width:80px; display:inline-block; margin-left:10px; margin-bottom:0;" oninput="actualizarPrecioTotalFicha()">
+          <input type="number" id="md-cantidad" value="1" min="1" class="form-control" style="width:80px; display:inline-block; margin-left:10px;" oninput="actualizarPrecioTotalFicha()">
         </div>
 
+        <!-- Caja de Cálculo Dinámico de Importes -->
         <div style="font-size:20px; font-weight:bold; margin-top:20px; background:#e8f0fe; padding:10px; border-radius:6px; color:#1557b0;">
           Precio Final: Bs. <span id="md-precio-total">0.00</span>
         </div>
 
-        <button class="btn" style="width:100%; margin-top:20px; background:#27ae60;" onclick="generarComprobantePedidoFinal()">Confirmar y Solicitar Pedido</button>
+        <button class="btn" style="width:100%; margin-top:20px; background:var(--success);" onclick="generarComprobantePedidoFinal()">Confirmar y Solicitar Pedido</button>
       </div>
     </div>
   </div>
 
-  <!-- ================= VISTA COMPROBANTE DE COMPRA ================= -->
+  <!-- ================= MODAL DE BOLETA / COMPROBANTE DE COMPRA ================= -->
   <div class="modal" id="modal-comprobante">
     <div class="modal-content" style="grid-template-columns: 1fr; max-width: 500px; text-align: center;">
       <span class="modal-close" onclick="cerrarModalComprobante()">×</span>
-      <h2 style="color:#27ae60; margin-top:0;">📋 Orden de Pedido Procesada</h2>
-      <textarea id="ticket-resumen" style="display:none;"></textarea>
+      <h2 style="color:var(--success); margin-top:0;">📋 Orden de Pedido Procesada</h2>
       <p>Se ha generado de forma exitosa tu boleta interna de preventa:</p>
       
-      <pre id="ticket-resumen" style="background:#f4f6f9; padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap; font-size:14px; border:1px dashed var(--border);"></pre>
+      <!-- Contenedor donde JavaScript dibuja físicamente el ticket de compra -->
+      <pre id="ticket-resumen" style="background:#f4f6f9; padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
       
-      <p style="font-weight:bold;">Para coordinar el pago, envío y facturación, ponte en contacto con nuestro asesor autorizado:</p>
+      <p style="font-weight:bold;">Para coordinar el pago y envío, ponte en contacto con nuestro asesor:</p>
+      <a id="lnk-comp-wa" href="" target="_blank" class="btn" style="background:var(--success); display:block; text-decoration:none; margin-bottom:10px;">💬 Hablar por WhatsApp</a>
       
-      <a id="lnk-comp-wa" href="" target="_blank" class="btn" style="background:#27ae60; display:block; text-decoration:none; margin-bottom:10px;">💬 Hablar por WhatsApp</a>
-      
-      <div id="redes-alternativas-container" style="margin-top:15px; display:flex; justify-content:center; gap:15px; flex-wrap:wrap;"></div>
+      <!-- Contenedor para inyección automática de canales sociales del producto -->
+      <div id="redes-alternativas-container" style="margin-top:15px; display:flex; justify-content:center; gap:15px;"></div>
     </div>
   </div>
-
+  <!-- ================= LÓGICA DE PROGRAMACIÓN (JAVASCRIPT) ================= -->
   <script>
     let cacheProductos = [];
     let cacheConfig = {};
@@ -194,6 +365,7 @@
     let tallaSeleccionada = null;
     let colorSeleccionada = null;
 
+    // Inicialización del entorno leyendo configuraciones e inventario desde PostgreSQL
     async function cargarAplicacionCompleta() {
       try {
         const rConfig = await fetch('/api/config');
@@ -213,45 +385,76 @@
         cacheProductos = await rProd.json();
         renderizarCatalogoPublico(cacheProductos);
         renderizarTablaGestionAdmin(cacheProductos);
-      } catch (err) { console.error("Error conectando con la infraestructura API de Vercel:", err); }
+      } catch (err) { 
+        console.error("Error conectando con la infraestructura de la API de Vercel:", err); 
+      }
     }
 
+    // Dibuja las tarjetas de productos en el grid público del cliente
     function renderizarCatalogoPublico(lista) {
       const container = document.getElementById('catalogo-grid-container');
       container.innerHTML = "";
+      if(lista.length === 0) {
+        container.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:#5f6368; padding: 40px 0;'>No hay productos disponibles por el momento.</p>";
+        return;
+      }
       lista.forEach(p => {
         const item = document.createElement('div');
         item.className = 'product-card';
         item.onclick = () => abrirDetalleFichaProducto(p);
         item.innerHTML = `
-          <img src="${p.imagen_url || 'https://via.placeholder.com/300'}" alt="">
+          <img src="${p.imagen_url || 'https://placeholder.com'}" alt="Producto">
           <div class="product-card-body">
             <h3>${p.nombre}</h3>
-            <div class="price">Bs. ${parseFloat(p.price || p.precio).toFixed(2)}</div>
-            <p style="font-size:13px; color:#5f6368; margin:0; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${p.descripcion || ''}</p>
+            <div class="price">Bs. ${parseFloat(p.precio).toFixed(2)}</div>
+            <p style="font-size:13px; color:#5f6368; margin:0; line-height: 1.4;">${p.descripcion || ''}</p>
           </div>
         `;
         container.appendChild(item);
       });
     }
 
+    // Lista el inventario en el panel de control junto al botón de borrado perpetuo
+    function renderizarTablaGestionAdmin(lista) {
+      const div = document.getElementById('tabla-gestion-productos');
+      div.innerHTML = "";
+      if(lista.length === 0) {
+        div.innerHTML = "<p style='color:#5f6368; padding: 15px 0;'>No hay productos en inventario.</p>";
+        return;
+      }
+      lista.forEach(p => {
+        const row = document.createElement('div');
+        row.style = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:12px 0;";
+        row.innerHTML = `
+          <span><strong>${p.nombre}</strong> - Bs. ${parseFloat(p.precio).toFixed(2)}</span>
+          <button class="btn btn-danger" style="padding:6px 12px; font-size:13px;" onclick="eliminarArticuloInventario(${p.id})">Eliminar</button>
+        `;
+        div.appendChild(row);
+      });
+    }
+
+    // Filtrado en tiempo real con la lupa de búsqueda interactiva
     function filtrarCatalogo() {
       const text = document.getElementById('buscador-input').value.toLowerCase();
-      const filtrados = cacheProductos.filter(p => p.nombre.toLowerCase().includes(text) || p.descripcion.toLowerCase().includes(text));
+      const filtrados = cacheProductos.filter(p => 
+        p.nombre.toLowerCase().includes(text) || 
+        p.descripcion.toLowerCase().includes(text)
+      );
       renderizarCatalogoPublico(filtrados);
     }
 
+    // Carga la información de variantes y unidades en el modal interactivo
     function abrirDetalleFichaProducto(p) {
       productoSeleccionadoActual = p;
       tallaSeleccionada = null;
       colorSeleccionada = null;
       document.getElementById('md-cantidad').value = 1;
-      
       document.getElementById('md-titulo').innerText = p.nombre;
       document.getElementById('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
       document.getElementById('md-precio-unitario').innerText = `Bs. ${parseFloat(p.precio).toFixed(2)}`;
-      document.getElementById('md-imagen').src = p.imagen_url || 'https://via.placeholder.com/300';
+      document.getElementById('md-imagen').src = p.imagen_url || 'https://placeholder.com';
       
+      // Selectores de tallas
       const divTallas = document.getElementById('md-lista-tallas');
       divTallas.innerHTML = "";
       if (p.tallas && p.tallas.trim() !== "") {
@@ -259,12 +462,19 @@
           const s = document.createElement('div');
           s.className = 'selector-item';
           s.innerText = t.trim();
-          s.onclick = () => { [...divTallas.children].forEach(c=>c.classList.remove('selected')); s.classList.add('selected'); tallaSeleccionada = t.trim(); };
+          s.onclick = () => { 
+            [...divTallas.children].forEach(c=>c.classList.remove('selected')); 
+            s.classList.add('selected'); 
+            tallaSeleccionada = t.trim(); 
+          };
           divTallas.appendChild(s);
         });
         document.getElementById('md-contenedor-tallas').style.display = 'block';
-      } else { document.getElementById('md-contenedor-tallas').style.display = 'none'; }
+      } else { 
+        document.getElementById('md-contenedor-tallas').style.display = 'none'; 
+      }
 
+      // Selectores de colores
       const divColores = document.getElementById('md-lista-colores');
       divColores.innerHTML = "";
       if (p.colores && p.colores.trim() !== "") {
@@ -272,22 +482,30 @@
           const s = document.createElement('div');
           s.className = 'selector-item';
           s.innerText = c.trim();
-          s.onclick = () => { [...divColores.children].forEach(x=>x.classList.remove('selected')); s.classList.add('selected'); colorSeleccionada = c.trim(); };
+          s.onclick = () => { 
+            [...divColores.children].forEach(x=>x.classList.remove('selected')); 
+            s.classList.add('selected'); 
+            colorSeleccionada = c.trim(); 
+          };
           divColores.appendChild(s);
         });
         document.getElementById('md-contenedor-colores').style.display = 'block';
-      } else { document.getElementById('md-contenedor-colores').style.display = 'none'; }
+      } else { 
+        document.getElementById('md-contenedor-colores').style.display = 'none'; 
+      }
 
-      迫ctualizarPrecioTotalFicha();
+      actualizarPrecioTotalFicha();
       document.getElementById('modal-detalle').classList.add('active');
     }
 
+    // Multiplicador automático de cantidad por valor unitario
     function actualizarPrecioTotalFicha() {
       if(!productoSeleccionadoActual) return;
       const cant = parseInt(document.getElementById('md-cantidad').value) || 1;
       document.getElementById('md-precio-total').innerText = (productoSeleccionadoActual.precio * cant).toFixed(2);
     }
 
+    // Ensamblado del ticket final y apertura del redireccionamiento a WhatsApp
     function generarComprobantePedidoFinal() {
       const p = productoSeleccionadoActual;
       if (p.tallas && p.tallas.trim() !== "" && !tallaSeleccionada) return alert("Por favor selecciona una talla disponible.");
@@ -297,40 +515,38 @@
       const totalCalculado = (p.precio * cant).toFixed(2);
       const numeroPedido = Math.floor(100000 + Math.random() * 900000);
 
-      const resumenText = `ORDEN DE COMPRA: #${numeroPedido}\n----------------------------------\nArtículo: ${p.nombre}\nPrecio Unit: Bs. ${parseFloat(p.precio).toFixed(2)}\nCantidad: ${cant}\nTalla: ${tallaSeleccionada || 'N/A'}\nColor: ${colorSeleccionada || 'N/A'}\n----------------------------------\nTOTAL A COORDINAR: Bs. ${totalCalculado}`;
+      const resumenText = `ORDEN DE PEDIDO: #${numeroPedido}\n----------------------------------\nArtículo: ${p.nombre}\nPrecio Unit: Bs. ${parseFloat(p.precio).toFixed(2)}\nCantidad: ${cant}\nTalla: ${tallaSeleccionada || 'N/A'}\nColor: ${colorSeleccionada || 'N/A'}\n----------------------------------\nTOTAL: Bs. ${totalCalculado}`;
       document.getElementById('ticket-resumen').innerText = resumenText;
 
       const destinoWhatsapp = p.whatsapp || cacheConfig.cfg_whatsapp || "+59100000000";
       const textoMensajeWa = encodeURIComponent(`Hola, quiero concretar el pedido de mi orden:\n\n${resumenText}`);
-      document.getElementById('lnk-comp-wa').href = `https://wa.me/${destinoWhatsapp.replace('+', '').replace(/\s/g, '')}?text=${textoMensajeWa}`;
+      document.getElementById('lnk-comp-wa').href = `https://wa.me{destinoWhatsapp.replace('+', '').replace(/[^0-9]/g, '')}?text=${textoMensajeWa}`;
 
       const containerRedes = document.getElementById('redes-alternativas-container');
       containerRedes.innerHTML = "";
-      
       let redesObj = {};
       try { redesObj = JSON.parse(p.redes_json || '{}'); } catch(e){}
       
-      if(redesObj.fb || p.redes_fb) {
-        containerRedes.innerHTML += `<a href="${redesObj.fb || p.redes_fb}" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size:13px; text-decoration:none;">Facebook del Producto</a>`;
-      } else if (cacheConfig.cfg_redes) {
-        containerRedes.innerHTML += `<a href="${cacheConfig.cfg_redes}" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size:13px; text-decoration:none;">Facebook General</a>`;
+      if(redesObj.fb || cacheConfig.cfg_redes) {
+        containerRedes.innerHTML += `<a href="${redesObj.fb || cacheConfig.cfg_redes}" target="_blank" style="color:var(--primary); font-weight:bold; text-decoration:none;">Facebook</a>`;
       }
-      if(redesObj.ig || p.redes_ig) {
-        containerRedes.innerHTML += `<a href="${redesObj.ig || p.redes_ig}" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size:13px; text-decoration:none; background:#e1306c;">Instagram del Producto</a>`;
+      if(redesObj.ig) {
+        containerRedes.innerHTML += `<a href="${redesObj.ig}" target="_blank" style="color:#e1306c; font-weight:bold; text-decoration:none;">Instagram</a>`;
       }
 
       cerrarModalDetalle();
       document.getElementById('modal-comprobante').classList.add('active');
     }
 
+    // Helper para transformar archivos multimedia de origen local a Base64
     function procesarImagenBase64() {
       const file = document.getElementById('prod-file').files[0];
-      if(!file) return;
       const reader = new FileReader();
       reader.onloadend = () => { document.getElementById('prod-imagen-b64').value = reader.result; };
-      reader.readAsDataURL(file);
+      if(file) reader.readAsDataURL(file);
     }
 
+    // Publicación asíncrona hacia el backend de VercelServerless
     async function publicarArticuloNuevo() {
       const token = localStorage.getItem('admin_session_token');
       const nombre = document.getElementById('prod-nombre').value;
@@ -346,7 +562,7 @@
         ig: document.getElementById('prod-redes-ig').value
       };
 
-      if (!nombre || !precio) return alert("Nombre y precio obligatorios.");
+      if (!nombre || !precio) return alert("El nombre y el precio son obligatorios para publicar.");
 
       const res = await fetch('/api/productos', {
         method: 'POST',
@@ -361,15 +577,17 @@
         document.getElementById('prod-descripcion').value = "";
         document.getElementById('prod-tallas').value = "";
         document.getElementById('prod-colores').value = "";
-        document.getElementById('prod-file').value = "";
         document.getElementById('prod-imagen-b64').value = "";
         document.getElementById('prod-whatsapp').value = "";
         document.getElementById('prod-redes-fb').value = "";
         document.getElementById('prod-redes-ig').value = "";
-        cargarApplicationCompleta();
-      } else { alert("Error al publicar. Verifica tu sesión."); }
+        await cargarAplicacionCompleta();
+      } else { 
+        alert("Error al publicar. Verifica tu sesión."); 
+      }
     }
 
+    // Guarda cambios estéticos globales en la tabla de configuración relacional
     async function guardarConfiguracionGlobal() {
       const token = localStorage.getItem('admin_session_token');
       const payload = {
@@ -385,61 +603,11 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': token },
         body: JSON.stringify(payload)
       });
-      if(res.ok) { alert("¡Cambios de interfaz guardados!"); cargarApplicationCompleta(); }
-      else { alert("Error guardando configuraciones."); }
-    }
-
-    function renderizarTablaGestionAdmin(lista) {
-      const div = document.getElementById('tabla-gestion-productos');
-      div.innerHTML = "";
-      if(lista.length === 0) div.innerHTML = "<p style='color:#5f6368;'>No hay productos en inventario.</p>";
-      lista.forEach(p => {
-        const row = document.createElement('div');
-        row.style = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:10px 0;";
-        row.innerHTML = `<span><strong>${p.nombre}</strong> - Bs. ${p.precio}</span><button class="btn btn-danger" style="padding:6px 12px; font-size:13px;" onclick="eliminarArticuloInventario(${p.id})">Eliminar</button>`;
-        div.appendChild(row);
-      });
-    }
-
-    async function eliminarArticuloInventario(id) {
-      if(!confirm("¿Estás seguro de eliminar este producto?")) return;
-      const token = localStorage.getItem('admin_session_token');
-      await fetch(`/api/productos/${id}`, { method: 'DELETE', headers: { 'Authorization': token } });
-      cargarApplicationCompleta();
-    }
-
-    async function solicitarAccesoAdmin() {
-      if(localStorage.getItem('admin_session_token') === "JG2026admin") { return irAVista('admin'); }
-      const clave = prompt("Por favor ingresa la clave de administrador para acceder:");
-      if (!clave) return;
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clave })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('admin_session_token', data.token);
-        irAVista('admin');
-      } else { alert("Contraseña incorrecta. Acceso restringido."); }
-    }
-
-    function irAVista(vista) {
-      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-      if(vista === 'publica') {
-        document.getElementById('vista-publica').classList.add('active');
-        document.getElementById('btn-cambiar-vista').style.display = "block";
-      } else {
-        document.getElementById('vista-admin').classList.add('active');
-        document.getElementById('btn-cambiar-vista').style.display = "none";
+      if(res.ok) { 
+        alert("¡Cambios de interfaz guardados!"); 
+        await cargarAplicacionCompleta(); 
+      } else { 
+        alert("Error guardando configuraciones de la interfaz."); 
       }
     }
 
-    function cerrarSesionAdmin() { localStorage.removeItem('admin_session_token'); irAVista('publica'); }
-    function cerrarModalDetalle() { document.getElementById('modal-detalle').classList.remove('active'); }
-    function cerrarModalComprobante() { document.getElementById('modal-comprobante').classList.remove('active'); }
-
-    window.onload = cargarApplicationCompleta;
-  </script>
-</body>
-</html>
