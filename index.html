@@ -322,7 +322,7 @@
       <pre id="ticket-resumen" style="background:#f4f6f9; padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
       
       <p style="font-weight:bold;">Para coordinar el pago y envío, ponte en contacto con nuestro asesor:</p>
-    <a id="lnk-comp-wa" href="" class="btn" style="background:#27ae60; display:block; text-decoration:none; margin-bottom:10px;">💬 Hablar por WhatsApp</a>
+    <button id="lnk-comp-wa" class="btn" style="background:#27ae60; display:block; text-decoration:none; margin-bottom:10px; width:100%;">💬 Hablar por WhatsApp</button>
       
       <!-- Contenedor para inyectar enlaces sociales específicos del artículo -->
       <div id="redes-alternativas-container" style="margin-top:15px; display:flex; justify-content:center; gap:15px;"></div>
@@ -491,7 +491,9 @@
       const destinoWhatsapp = p.whatsapp || cacheConfig.cfg_whatsapp || "+59100000000";
       const textoMensajeWa = encodeURIComponent(`Hola, quiero concretar el pedido de mi orden:\n\n${resumenText}`);
             const numeroLimpio = destinoWhatsapp.replace(/\+/g, '').replace(/[^0-9]/g, '');
-      document.getElementById('lnk-comp-wa').href = `https://whatsapp.com{numeroLimpio}&text=${textoMensajeWa}`;
+            document.getElementById('lnk-comp-wa').onclick = function() {
+        window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
+      };
       
       const containerRedes = document.getElementById('redes-alternativas-container');
       containerRedes.innerHTML = "";
