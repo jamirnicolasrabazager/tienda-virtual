@@ -211,7 +211,7 @@
   </style>
 </head>
 <body>
-
+  <!-- ENCABEZADO PRINCIPAL DE LA WEB -->
   <header>
     <div class="logo" id="txt-logo-header" onclick="irAVista('publica')">JG Tienda Digital</div>
     <div id="nav-buttons">
@@ -219,18 +219,22 @@
     </div>
   </header>
 
+  <!-- CONTENEDOR GENERAL DE LAS VISTAS SPA -->
   <div class="container">
     
-    <!-- INTERFAZ PÚBLICA -->
+    <!-- VISTA INTERFAZ PÚBLICA (CLIENTES) -->
     <div id="vista-publica" class="view-section active">
       <h2 id="txt-bienvenida" style="text-align: center; margin-bottom: 25px;">Explora Nuestro Catálogo</h2>
+      
+      <!-- Barra de Búsqueda -->
       <div class="search-bar">
         <input type="text" id="buscador-input" placeholder="¿Qué estás buscando hoy?..." oninput="filtrarCatalogo()">
       </div>
+      
+      <!-- Contenedor Dinámico para Tarjetas de Productos -->
       <div class="grid" id="catalogo-grid-container"></div>
     </div>
-
-    <!-- INTERFAZ ADMINISTRADOR -->
+    <!-- VISTA INTERFAZ ADMINISTRADOR (OCULTA POR DEFECTO) -->
     <div id="vista-admin" class="view-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 25px;">
         <h2>🛠️ Panel de Control Administrativo</h2>
@@ -238,21 +242,33 @@
       </div>
       
       <div class="admin-container">
+        <!-- Bloque Izquierdo: Configuración del Sitio -->
         <div class="admin-box">
           <h3>Modificar Aspecto y Textos Globales</h3>
-          <label>Título de la pestaña / Meta:</label>
-          <input type="text" id="cfg-meta-titulo" class="form-control">
-          <label>Nombre Comercial (Header):</label>
-          <input type="text" id="cfg-logo-header" class="form-control">
-          <label>Texto de Bienvenida Principal:</label>
-          <input type="text" id="cfg-bienvenida" class="form-control">
-          <label>WhatsApp General por Defecto:</label>
-          <input type="text" id="cfg-whatsapp" class="form-control">
-          <label>Enlace General de Redes Sociales (Facebook/Instagram):</label>
-          <input type="text" id="cfg-redes" class="form-control">
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Título de la pestaña / Meta:</label>
+            <input type="text" id="cfg-meta-titulo" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Nombre Comercial (Header):</label>
+            <input type="text" id="cfg-logo-header" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Texto de Bienvenida Principal:</label>
+            <input type="text" id="cfg-bienvenida" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">WhatsApp General por Defecto:</label>
+            <input type="text" id="cfg-whatsapp" class="form-control">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Enlace General de Redes Sociales (Facebook/Instagram):</label>
+            <input type="text" id="cfg-redes" class="form-control">
+          </div>
           <button class="btn" onclick="guardarConfiguracionGlobal()">Guardar Cambios de Interfaz</button>
         </div>
 
+        <!-- Bloque Derecho: Publicación de Nuevos Productos -->
         <div class="admin-box">
           <h3>Publicar Nuevo Artículo en Catálogo</h3>
           <input type="text" id="prod-nombre" placeholder="Nombre del Producto" class="form-control" required>
@@ -260,75 +276,148 @@
           <textarea id="prod-descripcion" placeholder="Descripción del artículo..." class="form-control" rows="3"></textarea>
           <input type="text" id="prod-tallas" placeholder="Tallas disponibles (ej: S, M, L, XL)" class="form-control">
           <input type="text" id="prod-colores" placeholder="Colores disponibles (ej: Negro, Azul, Blanco)" class="form-control">
-          <label>Imagen del Producto:</label>
-          <input type="file" id="prod-file" class="form-control" accept="image/*" onchange="procesarImagenBase64()">
-          <input type="hidden" id="prod-imagen-b64">
+          
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">Imagen del Producto:</label>
+            <input type="file" id="prod-file" class="form-control" accept="image/*" onchange="procesarImagenBase64()">
+            <input type="hidden" id="prod-imagen-b64">
+          </div>
+          
           <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
           <h4>Redes de Contacto Específicas del Producto (Opcional)</h4>
-          <input type="text" id="prod-whatsapp" placeholder="WhatsApp Específico" class="form-control">
+          <input type="text" id="prod-whatsapp" placeholder="WhatsApp Específico para este producto" class="form-control">
           <input type="text" id="prod-redes-fb" placeholder="Enlace de Facebook para este producto" class="form-control">
           <input type="text" id="prod-redes-ig" placeholder="Enlace de Instagram para este producto" class="form-control">
           <button class="btn" style="background:#27ae60; width:100%;" onclick="publicarArticuloNuevo()">Publicar Producto Permanentemente</button>
         </div>
       </div>
 
+      <!-- Sección de Control de Inventario y Eliminación -->
       <div class="admin-box" style="margin-top:30px;">
         <h3>Inventario Activo (Gestionar Eliminaciones)</h3>
         <div id="tabla-gestion-productos"></div>
       </div>
     </div>
-  </div>
 
-  <!-- MODAL DETALLE -->
+  </div> <!-- Cierre del div .container principal -->
+  <!-- ================= MODAL DE DETALLE INTERACTIVO DEL PRODUCTO ================= -->
   <div class="modal" id="modal-detalle">
     <div class="modal-content">
       <span class="modal-close" onclick="cerrarModalDetalle()">×</span>
-      <div><img id="md-imagen" src="" alt="Vista previa"></div>
+      <div>
+        <img id="md-imagen" src="" alt="Vista previa del artículo">
+      </div>
       <div>
         <h2 id="md-titulo" style="margin-top:0;"></h2>
         <p id="md-descripcion" style="color:#5f6368; line-height:1.5;"></p>
         <div style="font-size:24px; font-weight:bold; color:var(--primary); margin: 15px 0;" id="md-precio-unitario"></div>
+        
+        <!-- Selectores Dinámicos de Tallas -->
         <div id="md-contenedor-tallas">
           <label style="font-weight:bold;">Selecciona Talla:</label>
           <div class="selector-box" id="md-lista-tallas"></div>
         </div>
+
+        <!-- Selectores Dinámicos de Colores -->
         <div id="md-contenedor-colores" style="margin-top:15px;">
           <label style="font-weight:bold;">Selecciona Color:</label>
           <div class="selector-box" id="md-lista-colores"></div>
         </div>
+
+        <!-- Contador Reactivo de Unidades -->
         <div style="margin-top:20px;">
           <label style="font-weight:bold;">Cantidad Deseada:</label>
           <input type="number" id="md-cantidad" value="1" min="1" class="form-control" style="width:80px; display:inline-block; margin-left:10px;" oninput="actualizarPrecioTotalFicha()">
         </div>
+
         <!-- Caja de Cálculo Dinámico de Importes -->
         <div style="font-size:20px; font-weight:bold; margin-top:20px; background:#e8f0fe; padding:10px; border-radius:6px; color:#1557b0;">
           Precio Final: Bs. <span id="md-precio-total">0.00</span>
         </div>
-        
-        <!-- Botón para procesar la orden del cliente -->
-        <button class="btn" style="width:100%; margin-top:20px; background:#27ae60;" onclick="generarComprobantePedidoFinal()">Confirmar y Solicitar Pedido</button>
+
+        <button class="btn" style="width:100%; margin-top:20px; background:var(--success);" onclick="generarComprobantePedidoFinal()">Confirmar y Solicitar Pedido</button>
       </div>
     </div>
   </div>
 
-  <!-- ================= MODAL DEL COMPROBANTE DE COMPRA ================= -->
+  <!-- ================= MODAL DE BOLETA / COMPROBANTE DE COMPRA ================= -->
   <div class="modal" id="modal-comprobante">
     <div class="modal-content" style="grid-template-columns: 1fr; max-width: 500px; text-align: center;">
       <span class="modal-close" onclick="cerrarModalComprobante()">×</span>
-      <h2 style="color:#27ae60; margin-top:0;">📋 Orden de Pedido Procesada</h2>
+      <h2 style="color:var(--success); margin-top:0;">📋 Orden de Pedido Procesada</h2>
       <p>Se ha generado de forma exitosa tu boleta interna de preventa:</p>
       
-      <!-- Cuadro de texto donde se dibuja el ticket final de WhatsApp -->
+      <!-- Contenedor donde JavaScript dibuja el ticket de compra -->
       <pre id="ticket-resumen" style="background:#f4f6f9; padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
       
       <p style="font-weight:bold;">Para coordinar el pago y envío, ponte en contacto con nuestro asesor:</p>
-    <button id="lnk-comp-wa" class="btn" style="background:#27ae60; display:block; text-decoration:none; margin-bottom:10px; width:100%;">💬 Hablar por WhatsApp</button>
       
-      <!-- Contenedor para inyectar enlaces sociales específicos del artículo -->
+      <!-- Botón de WhatsApp robustecido para evitar el bloqueo about:blank -->
+      <button id="lnk-comp-wa" class="btn" style="background:var(--success); display:block; margin-bottom:10px; width:100%;">💬 Hablar por WhatsApp</button>
+      
+      <!-- Contenedor para inyección de canales sociales -->
       <div id="redes-alternativas-container" style="margin-top:15px; display:flex; justify-content:center; gap:15px;"></div>
     </div>
   </div>
+  <!-- ================= MODAL DE DETALLE INTERACTIVO DEL PRODUCTO ================= -->
+  <div class="modal" id="modal-detalle">
+    <div class="modal-content">
+      <span class="modal-close" onclick="cerrarModalDetalle()">×</span>
+      <div>
+        <img id="md-imagen" src="" alt="Vista previa del artículo">
+      </div>
+      <div>
+        <h2 id="md-titulo" style="margin-top:0;"></h2>
+        <p id="md-descripcion" style="color:#5f6368; line-height:1.5;"></p>
+        <div style="font-size:24px; font-weight:bold; color:var(--primary); margin: 15px 0;" id="md-precio-unitario"></div>
+        
+        <!-- Selectores Dinámicos de Tallas -->
+        <div id="md-contenedor-tallas">
+          <label style="font-weight:bold;">Selecciona Talla:</label>
+          <div class="selector-box" id="md-lista-tallas"></div>
+        </div>
 
+        <!-- Selectores Dinámicos de Colores -->
+        <div id="md-contenedor-colores" style="margin-top:15px;">
+          <label style="font-weight:bold;">Selecciona Color:</label>
+          <div class="selector-box" id="md-lista-colores"></div>
+        </div>
+
+        <!-- Contador Reactivo de Unidades -->
+        <div style="margin-top:20px;">
+          <label style="font-weight:bold;">Cantidad Deseada:</label>
+          <input type="number" id="md-cantidad" value="1" min="1" class="form-control" style="width:80px; display:inline-block; margin-left:10px;" oninput="actualizarPrecioTotalFicha()">
+        </div>
+
+        <!-- Caja de Cálculo Dinámico de Importes -->
+        <div style="font-size:20px; font-weight:bold; margin-top:20px; background:#e8f0fe; padding:10px; border-radius:6px; color:#1557b0;">
+          Precio Final: Bs. <span id="md-precio-total">0.00</span>
+        </div>
+
+        <button class="btn" style="width:100%; margin-top:20px; background:var(--success);" onclick="generarComprobantePedidoFinal()">Confirmar y Solicitar Pedido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL DE BOLETA / COMPROBANTE DE COMPRA ================= -->
+  <div class="modal" id="modal-comprobante">
+    <div class="modal-content" style="grid-template-columns: 1fr; max-width: 500px; text-align: center;">
+      <span class="modal-close" onclick="cerrarModalComprobante()">×</span>
+      <h2 style="color:var(--success); margin-top:0;">📋 Orden de Pedido Procesada</h2>
+      <p>Se ha generado de forma exitosa tu boleta interna de preventa:</p>
+      
+      <!-- Contenedor donde JavaScript dibuja físicamente el ticket de compra -->
+      <pre id="ticket-resumen" style="background:#f4f6f9; padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
+      
+      <p style="font-weight:bold;">Para coordinar el pago y envío, ponte en contacto con nuestro asesor:</p>
+      
+      <!-- BOTÓN NATIVO CORREGIDO PARA EVITAR BLOQUEO DE POPUPS -->
+      <button id="lnk-comp-wa" class="btn" style="background:var(--success); display:block; margin-bottom:10px; width:100%;">💬 Hablar por WhatsApp</button>
+      
+      <!-- Contenedor para inyección automática de canales sociales del producto -->
+      <div id="redes-alternativas-container" style="margin-top:15px; display:flex; justify-content:center; gap:15px;"></div>
+    </div>
+  </div>
   <!-- ================= LÓGICA DE PROGRAMACIÓN (JAVASCRIPT) ================= -->
   <script>
     let cacheProductos = [];
@@ -358,9 +447,10 @@
         renderizarCatalogoPublico(cacheProductos);
         renderizarTablaGestionAdmin(cacheProductos);
       } catch (err) { 
-        console.error("Error conectando con la infraestructura API:", err); 
+        console.error("Error conectando con la infraestructura de la API de Vercel:", err); 
       }
     }
+
     // Dibuja las tarjetas de productos en el grid público del cliente
     function renderizarCatalogoPublico(lista) {
       const container = document.getElementById('catalogo-grid-container');
@@ -413,19 +503,18 @@
       );
       renderizarCatalogoPublico(filtrados);
     }
-    // Carga la información de variantes y unidades en el modal interactivo de compra
+
+    // Carga la información de variantes y unidades en el modal interactivo
     function abrirDetalleFichaProducto(p) {
       productoSeleccionadoActual = p;
       tallaSeleccionada = null;
       colorSeleccionada = null;
       document.getElementById('md-cantidad').value = 1;
-      
-      document.getElementById('md-titulo').innerText = p.nombre || '';
+      document.getElementById('md-titulo').innerText = p.nombre;
       document.getElementById('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
       document.getElementById('md-precio-unitario').innerText = `Bs. ${parseFloat(p.precio).toFixed(2)}`;
       document.getElementById('md-imagen').src = p.imagen_url || 'https://placeholder.com';
       
-      // Procesamiento de selectores de tallas
       const divTallas = document.getElementById('md-lista-tallas');
       if (p.tallas && p.tallas.trim() !== "") {
         divTallas.innerHTML = "";
@@ -445,7 +534,6 @@
         document.getElementById('md-contenedor-tallas').style.display = 'none'; 
       }
 
-      // Procesamiento de selectores de colores
       const divColores = document.getElementById('md-lista-colores');
       if (p.colores && p.colores.trim() !== "") {
         divColores.innerHTML = "";
@@ -475,7 +563,8 @@
       const cant = parseInt(document.getElementById('md-cantidad').value) || 1;
       document.getElementById('md-precio-total').innerText = (productoSeleccionadoActual.precio * cant).toFixed(2);
     }
-    // Ensamblado del ticket final y apertura del redireccionamiento a WhatsApp
+
+    // Ensamblado del ticket final y apertura de redirección nativa mediante window.open
     function generarComprobantePedidoFinal() {
       const p = productoSeleccionadoActual;
       if (p.tallas && p.tallas.trim() !== "" && !tallaSeleccionada) return alert("Por favor selecciona una talla disponible.");
@@ -490,13 +579,13 @@
 
       const destinoWhatsapp = p.whatsapp || cacheConfig.cfg_whatsapp || "+59100000000";
       const textoMensajeWa = encodeURIComponent(`Hola, quiero concretar el pedido de mi orden:\n\n${resumenText}`);
-            const numeroLimpio = destinoWhatsapp.replace(/\+/g, '').replace(/[^0-9]/g, '');
-                  document.getElementById('lnk-comp-wa').onclick = function() {
-        window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
-      };
-        window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
-      };
       
+      // Control de evento de click directo seguro con redirección por API oficial
+      const numeroLimpio = destinoWhatsapp.replace(/\+/g, '').replace(/[^0-9]/g, '');
+      document.getElementById('lnk-comp-wa').onclick = function() {
+        window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
+      };
+
       const containerRedes = document.getElementById('redes-alternativas-container');
       containerRedes.innerHTML = "";
       let redesObj = {};
@@ -561,6 +650,7 @@
         alert("Error al publicar. Verifica tu sesión."); 
       }
     }
+
     // Guarda cambios estéticos globales en la tabla de configuración relacional
     async function guardarConfiguracionGlobal() {
       const token = localStorage.getItem('admin_session_token');
@@ -584,7 +674,6 @@
         alert("Error guardando configuraciones de la interfaz."); 
       }
     }
-
     // Remueve físicamente el registro de la base de datos PostgreSQL
     async function eliminarArticuloInventario(id) {
       if(!confirm("¿Estás seguro de eliminar este producto del catálogo permanentemente?")) return;
@@ -646,5 +735,3 @@
   </script>
 </body>
 </html>
-
-
