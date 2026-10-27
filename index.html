@@ -491,7 +491,9 @@
       const destinoWhatsapp = p.whatsapp || cacheConfig.cfg_whatsapp || "+59100000000";
       const textoMensajeWa = encodeURIComponent(`Hola, quiero concretar el pedido de mi orden:\n\n${resumenText}`);
             const numeroLimpio = destinoWhatsapp.replace(/\+/g, '').replace(/[^0-9]/g, '');
-            document.getElementById('lnk-comp-wa').onclick = function() {
+                  document.getElementById('lnk-comp-wa').onclick = function() {
+        window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
+      };
         window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
       };
       
