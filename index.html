@@ -426,19 +426,18 @@
     let tallaSeleccionada = null;
     let colorSeleccionada = null;
 
-    // Inicialización del entorno leyendo configuraciones e inventario desde PostgreSQL
-        // Carga inicial obligatoria de configuraciones y base de datos relacional
+       // Carga inicial obligatoria de configuraciones y base de datos relacional
     async function cargarAplicacionCompleta() {
       try {
         const rConfig = await fetch('/api/config');
         cacheConfig = await rConfig.json();
         
-        // CORRECCIÓN DE TEXTOS GLOBALES: Mapeo exacto de base de datos a elementos HTML
-        const metaTitulo = cacheConfig.cfg_meta_titulo || cacheConfig.cfg-meta-titulo || "Catálogo Profesional";
-        const logoHeader = cacheConfig.cfg_logo_header || cacheConfig.cfg-logo-header || "JG INOVATION";
-        const bienvenidaText = cacheConfig.cfg_bienvenida || cacheConfig.cfg-bienvenida || "Bienvenidos";
-        const whatsappDefecto = cacheConfig.cfg_whatsapp || cacheConfig.cfg-whatsapp || "62323719";
-        const redesSociales = cacheConfig.cfg_redes || cacheConfig.cfg-redes || "";
+        // CORRECCIÓN: Nombres limpios en inglés nativo sin guiones de traducción
+        const metaTitulo = cacheConfig.cfg_meta_titulo || "Catálogo Profesional";
+        const logoHeader = cacheConfig.cfg_logo_header || "JG INOVATION";
+        const bienvenidaText = cacheConfig.cfg_bienvenida || "Bienvenidos";
+        const whatsappDefecto = cacheConfig.cfg_whatsapp || "62323719";
+        const redesSociales = cacheConfig.cfg_redes || "";
 
         document.getElementById('txt-meta-titulo').innerText = metaTitulo;
         document.getElementById('txt-logo-header').innerText = logoHeader;
@@ -508,6 +507,7 @@
       );
       renderizarCatalogoPublico(filtrados);
     }
+
 
     // Carga la información de variantes y unidades en el modal interactivo
     function abrirDetalleFichaProducto(p) {
