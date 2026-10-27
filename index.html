@@ -564,7 +564,7 @@
       document.getElementById('md-precio-total').innerText = (productoSeleccionadoActual.precio * cant).toFixed(2);
     }
 
-    // Ensamblado del ticket final y apertura de redirección nativa mediante window.open
+       // Ensamblado del ticket final y apertura de redirección nativa limpia
     function generarComprobantePedidoFinal() {
       const p = productoSeleccionadoActual;
       if (p.tallas && p.tallas.trim() !== "" && !tallaSeleccionada) return alert("Por favor selecciona una talla disponible.");
@@ -577,14 +577,18 @@
       const resumenText = `ORDEN DE PEDIDO: #${numeroPedido}\n----------------------------------\nArtículo: ${p.nombre}\nPrecio Unit: Bs. ${parseFloat(p.precio).toFixed(2)}\nCantidad: ${cant}\nTalla: ${tallaSeleccionada || 'N/A'}\nColor: ${colorSeleccionada || 'N/A'}\n----------------------------------\nTOTAL: Bs. ${totalCalculado}`;
       document.getElementById('ticket-resumen').innerText = resumenText;
 
-      const destinoWhatsapp = p.whatsapp || cacheConfig.cfg_whatsapp || "+59100000000";
+      // Obtener el número de la base de datos (Prioriza el del producto, luego el global del sitio)
+      const destinoWhatsapp = p.whatsapp || cacheConfig.cfg_whatsapp || "62323719";
       const textoMensajeWa = encodeURIComponent(`Hola, quiero concretar el pedido de mi orden:\n\n${resumenText}`);
       
-      // Control de evento de click directo seguro con redirección por API oficial
+      // Vinculación directa al evento click del botón de la boleta
       const numeroLimpio = destinoWhatsapp.replace(/\+/g, '').replace(/[^0-9]/g, '');
-      document.getElementById('lnk-comp-wa').onclick = function() {
-        window.open("https://whatsapp.com" + numeroLimpio + "&text=" + textoMensajeWa, "_blank");
-      };
+      const btnWa = document.getElementById('lnk-comp-wa');
+      if (btnWa) {
+        btnWa.onclick = function() {
+          window.location.href = `https://whatsapp.com{numeroLimpio}&text=${textoMensajeWa}`;
+        };
+      }
 
       const containerRedes = document.getElementById('redes-alternativas-container');
       containerRedes.innerHTML = "";
@@ -601,7 +605,7 @@
       cerrarModalDetalle();
       document.getElementById('modal-comprobante').classList.add('active');
     }
-
+    
     // Helper para transformar archivos multimedia de origen local a Base64
     function procesarImagenBase64() {
       const file = document.getElementById('prod-file').files;
