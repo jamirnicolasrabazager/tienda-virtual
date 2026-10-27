@@ -427,31 +427,38 @@
     let colorSeleccionada = null;
 
     // Inicialización del entorno leyendo configuraciones e inventario desde PostgreSQL
+        // Carga inicial obligatoria de configuraciones y base de datos relacional
     async function cargarAplicacionCompleta() {
       try {
         const rConfig = await fetch('/api/config');
         cacheConfig = await rConfig.json();
         
-        document.getElementById('txt-meta-titulo').innerText = cacheConfig.cfg_meta_titulo || "Catálogo Profesional";
-        document.getElementById('txt-logo-header').innerText = cacheConfig.cfg_logo_header || "JG Tienda Digital";
-        document.getElementById('txt-bienvenida').innerText = cacheConfig.cfg_bienvenida || "Explora Nuestro Catálogo";
+        // CORRECCIÓN DE TEXTOS GLOBALES: Mapeo exacto de base de datos a elementos HTML
+        const metaTitulo = cacheConfig.cfg_meta_titulo || cacheConfig.cfg-meta-titulo || "Catálogo Profesional";
+        const logoHeader = cacheConfig.cfg_logo_header || cacheConfig.cfg-logo-header || "JG INOVATION";
+        const bienvenidaText = cacheConfig.cfg_bienvenida || cacheConfig.cfg-bienvenida || "Bienvenidos";
+        const whatsappDefecto = cacheConfig.cfg_whatsapp || cacheConfig.cfg-whatsapp || "62323719";
+        const redesSociales = cacheConfig.cfg_redes || cacheConfig.cfg-redes || "";
+
+        document.getElementById('txt-meta-titulo').innerText = metaTitulo;
+        document.getElementById('txt-logo-header').innerText = logoHeader;
+        document.getElementById('txt-bienvenida').innerText = bienvenidaText;
         
-        document.getElementById('cfg-meta-titulo').value = cacheConfig.cfg_meta_titulo || "";
-        document.getElementById('cfg-logo-header').value = cacheConfig.cfg_logo_header || "";
-        document.getElementById('cfg-bienvenida').value = cacheConfig.cfg_bienvenida || "";
-        document.getElementById('cfg-whatsapp').value = cacheConfig.cfg_whatsapp || "";
-        document.getElementById('cfg-redes').value = cacheConfig.cfg_redes || "";
+        if(document.getElementById('cfg-meta-titulo')) document.getElementById('cfg-meta-titulo').value = metaTitulo;
+        if(document.getElementById('cfg-logo-header')) document.getElementById('cfg-logo-header').value = logoHeader;
+        if(document.getElementById('cfg-bienvenida')) document.getElementById('cfg-bienvenida').value = bienvenidaText;
+        if(document.getElementById('cfg-whatsapp')) document.getElementById('cfg-whatsapp').value = whatsappDefecto;
+        if(document.getElementById('cfg-redes')) document.getElementById('cfg-redes').value = redesSociales;
 
         const rProd = await fetch('/api/productos');
         cacheProductos = await rProd.json();
         renderizarCatalogoPublico(cacheProductos);
         renderizarTablaGestionAdmin(cacheProductos);
       } catch (err) { 
-        console.error("Error conectando con la infraestructura de la API de Vercel:", err); 
+        console.error("Error cargando la configuración inicial:", err); 
       }
     }
 
-    // Dibuja las tarjetas de productos en el grid público del cliente
     function renderizarCatalogoPublico(lista) {
       const container = document.getElementById('catalogo-grid-container');
       container.innerHTML = "";
@@ -475,7 +482,6 @@
       });
     }
 
-    // Lista el inventario en el panel de control junto al botón de borrado perpetuo
     function renderizarTablaGestionAdmin(lista) {
       const div = document.getElementById('tabla-gestion-productos');
       div.innerHTML = "";
@@ -494,7 +500,6 @@
       });
     }
 
-    // Filtrado en tiempo real con la lupa de búsqueda interactiva
     function filtrarCatalogo() {
       const text = document.getElementById('buscador-input').value.toLowerCase();
       const filtrados = cacheProductos.filter(p => 
