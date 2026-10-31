@@ -1,14 +1,18 @@
 {
-  "name": "catalogo-jg-innovacion-final",
-  "version": "1.2.0",
-  "description": "Catálogo con separación de vistas, login JG2026admin y comprobante de pedido",
+  "name": "productos-en-linea",
+  "version": "2.0.0",
+  "description": "Tienda virtual con carrito, pedidos por WhatsApp, cashback y panel admin con Supabase Auth",
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
-    "express": "^4.19.2",
+    "@supabase/supabase-js": "^2.45.0",
     "cors": "^2.8.5",
+    "express": "^4.19.2",
     "pg": "^8.11.5"
   }
 }
