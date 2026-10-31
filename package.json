@@ -1,5 +1,5 @@
 {
-  "name": "productos-en-línea",
+  "name": "productos-en-linea",
   "version": "2.0.0",
   "description": "Tienda virtual con carrito, pedidos por WhatsApp, cashback y panel admin con Supabase Auth",
   "main": "api/index.js",
@@ -7,7 +7,8 @@
     "start": "node api/index.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "express": "^4.18.2"
   },
   "engines": {
     "node": "22.x"
