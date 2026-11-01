@@ -78,6 +78,8 @@ async function inicializarBD() {
       redes_json TEXT
     )`);
   await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS cashback_pct NUMERIC NOT NULL DEFAULT 0`);
+  // Varias imágenes por producto: arreglo JSON de URLs (la primera es la principal; imagen_url se conserva como respaldo)
+  await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS imagenes JSONB NOT NULL DEFAULT '[]'::jsonb`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_config (
       clave VARCHAR(100) PRIMARY KEY,
@@ -270,6 +272,49 @@ app.get('/api/config', ah(async (req, res) => {
   res.json(config);
 }));
 
+// ---------- Descarga forzada del QR de pago ----------
+// El navegador enlaza aquí con <a download>: al venir del mismo dominio y con "attachment" se descarga
+// directo en escritorio y móviles, sin depender de CORS ni del origen real de la imagen.
+function urlPublicaSegura(raw) { // solo https y nombres de dominio públicos (evita apuntar a la red interna)
+  let u; try { u = new URL(raw); } catch (e) { return null; }
+  const h = u.hostname.toLowerCase();
+  if (u.protocol !== 'https:') return null;
+  if (h === 'localhost' || /\.(localhost|local|internal)$/.test(h)) return null;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.includes(':')) return null;
+  return u;
+}
+const EXT_IMG = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+
+app.get('/api/qr-pago', ah(async (req, res) => {
+  const { rows } = await pool.query("SELECT valor FROM tienda_config WHERE clave = 'cfg_qr_pago'");
+  const src = rows[0] && rows[0].valor;
+  if (!src) throw new HttpError(404, 'Aún no hay un QR de pago configurado.');
+  let buf, tipo;
+  const m = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(src);
+  if (m) { tipo = m[1]; buf = Buffer.from(m[2], 'base64'); }
+  else {
+    const u = urlPublicaSegura(src);
+    if (!u) throw new HttpError(404, 'El QR configurado no está disponible.');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const r = await fetch(u, { signal: ctrl.signal, redirect: 'error' });
+      tipo = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+      if (!r.ok || !EXT_IMG[tipo]) throw new Error('respuesta no válida');
+      buf = Buffer.from(await r.arrayBuffer());
+    } catch (e) {
+      throw new HttpError(502, 'No se pudo obtener la imagen del QR.');
+    } finally { clearTimeout(timer); }
+  }
+  if (buf.length > 5 * 1024 * 1024) throw new HttpError(502, 'La imagen del QR es demasiado grande.');
+  res.setHeader('Content-Type', tipo);
+  res.setHeader('Content-Length', buf.length);
+  res.setHeader('Content-Disposition', `attachment; filename="qr-pago.${EXT_IMG[tipo]}"`);
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.end(buf);
+}));
+
 // ---------- Cuentas de clientes ----------
 app.post('/api/auth/registro', ah(async (req, res) => {
   const email = str(req.body.email, 200).toLowerCase();
@@ -448,16 +493,29 @@ app.post('/api/productos', requiereAdmin, ah(async (req, res) => {
   const precio = Number(b.precio);
   if (!nombre || !Number.isFinite(precio) || precio < 0) throw new HttpError(400, 'Nombre y precio válidos son obligatorios.');
   const cashback = pctValido(b.cashback_pct);
+  // Galería: arreglo de URLs (máx. 8). La primera es la imagen principal.
+  let imagenes = [];
+  if (b.imagenes !== undefined && b.imagenes !== null) {
+    if (!Array.isArray(b.imagenes)) throw new HttpError(400, 'El campo "imagenes" debe ser una lista de URLs.');
+    if (b.imagenes.length > 8) throw new HttpError(400, 'Máximo 8 imágenes por producto.');
+    for (const u of b.imagenes) {
+      if (typeof u !== 'string' || u.length > 1000 || !/^https?:\/\/\S+$/i.test(u)) throw new HttpError(400, 'Cada imagen debe ser un enlace http(s) válido.');
+      imagenes.push(u);
+    }
+  }
   let imagen = String(b.imagen_url || '');
   if (imagen.startsWith('data:')) imagen = await subirImagenDataUri(imagen);
   else if (imagen && !/^https?:\/\//i.test(imagen)) imagen = '';
+  if (imagenes.length) imagen = imagenes[0];             // imagen_url siempre refleja la principal
+  else if (imagen) imagenes = [imagen];
   const redes = b.redes_json && typeof b.redes_json === 'object' ? b.redes_json : {};
   const { rows } = await pool.query(
     `INSERT INTO tienda_productos
-       (nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+       (nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct, imagenes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb) RETURNING id`,
     [nombre, precio, str(b.descripcion, 4000), str(b.tallas, 255), str(b.colores, 255), imagen,
-     str(b.whatsapp, 50), JSON.stringify({ fb: str(redes.fb, 500), ig: str(redes.ig, 500) }), cashback]
+     str(b.whatsapp, 50), JSON.stringify({ fb: str(redes.fb, 500), ig: str(redes.ig, 500) }), cashback,
+     JSON.stringify(imagenes)]
   );
   res.status(201).json({ completado: true, id: rows[0].id });
 }));

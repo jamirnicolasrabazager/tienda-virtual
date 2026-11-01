@@ -5,239 +5,308 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="txt-meta-titulo">Catálogo Profesional</title>
   <style>
-    :root { 
-      --primary: #1a73e8; 
-      --dark: #202124; 
-      --light: #f8f9fa; 
-      --border: #dadce0; 
-      --danger: #d93025;
-      --success: #27ae60;
+    /* =====================================================================
+       DISEÑO CORPORATIVO · negro mate, grises oscuros, blanco y púrpura profundo
+       ===================================================================== */
+    :root {
+      --primary: #4a148c;
+      --primary-dark: #38006b;
+      --primary-soft: #f3ecfb;
+      --primary-ring: rgba(74, 20, 140, 0.22);
+      --dark: #0e0e10;
+      --ink: #18181b;
+      --graphite: #27272c;
+      --graphite-2: #3b3b43;
+      --light: #f5f5f7;
+      --border: #e4e4e9;
+      --muted: #6c6c78;
+      --success: #1f7a4d;
+      --success-soft: #e7f4ed;
+      --danger: #b3261e;
+      --danger-soft: #fbe9e7;
+      --warning: #8a5a00;
+      --warning-soft: #fdf3dc;
+      --shadow-sm: 0 1px 2px rgba(14, 14, 16, 0.06), 0 1px 3px rgba(14, 14, 16, 0.05);
+      --shadow-md: 0 6px 18px -6px rgba(14, 14, 16, 0.18);
+      --shadow-lg: 0 22px 44px -14px rgba(74, 20, 140, 0.34), 0 10px 20px -10px rgba(14, 14, 16, 0.25);
     }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-      margin: 0; 
-      background: #f1f3f4; 
-      color: var(--dark); 
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--light);
+      color: var(--ink);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
-    header { 
-      background: white; 
-      border-bottom: 1px solid var(--border); 
-      padding: 15px 30px; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
+    h1, h2, h3, h4 { letter-spacing: -0.015em; color: var(--ink); }
+
+    /* ----- Encabezado ----- */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 14px 36px;
+      background: var(--dark);
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 6px 24px -10px rgba(0, 0, 0, 0.55);
     }
-    .logo { 
-      font-size: 22px; 
-      font-weight: bold; 
-      color: var(--primary); 
-      cursor: pointer; 
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 18px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #fff; cursor: pointer;
     }
-    .container { 
-      max-width: 1200px; 
-      margin: 30px auto; 
-      padding: 0 20px; 
+    .logo::before {
+      content: ''; width: 12px; height: 12px; border-radius: 3px;
+      background: linear-gradient(135deg, #7b3fe4, var(--primary));
+      box-shadow: 0 0 0 3px rgba(123, 63, 228, 0.25);
+      transform: rotate(45deg);
     }
-    .view-section { 
-      display: none; 
+    header .btn-secondary {
+      background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.24); box-shadow: none;
     }
-    .view-section.active { 
-      display: block; 
-    }
-    .search-bar { 
-      background: white; 
-      padding: 12px 20px; 
-      border-radius: 8px; 
-      border: 1px solid var(--border); 
-      display: flex; 
-      max-width: 600px; 
-      margin: 0 auto 30px auto; 
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
-    }
-    .search-bar input { 
-      width: 100%; 
-      border: none; 
-      outline: none; 
-      font-size: 16px; 
-    }
-    .grid { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
-      gap: 25px; 
-    }
-    .product-card { 
-      background: white; 
-      border-radius: 8px; 
-      border: 1px solid var(--border); 
-      overflow: hidden; 
-      display: flex; 
-      flex-direction: column; 
-      transition: transform 0.2s, box-shadow 0.2s; 
-      cursor: pointer; 
-    }
-    .product-card:hover { 
-      transform: translateY(-4px); 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
-    }
-    .product-card img { 
-      width: 100%; 
-      height: 240px; 
-      object-fit: cover; 
-      background: var(--light); 
-    }
-    .product-card-body { 
-      padding: 15px; 
-      display: flex; 
-      flex-direction: column; 
-      flex-grow: 1; 
-    }
-    .product-card h3 { 
-      margin: 0 0 10px 0; 
-      font-size: 18px; 
-    }
-    .product-card .price { 
-      font-size: 20px; 
-      font-weight: bold; 
-      color: var(--primary); 
-      margin-bottom: 10px; 
-    }
-    .modal { 
-      display: none; 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      width: 100%; 
-      height: 100%; 
-      background: rgba(0,0,0,0.5); 
-      z-index: 1000; 
-      align-items: center; 
-      justify-content: center; 
-    }
-    .modal.active { 
-      display: flex; 
-    }
-    .modal-content { 
-      background: white; 
-      padding: 30px; 
-      border-radius: 12px; 
-      max-width: 700px; 
-      width: 90%; 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 25px; 
-      max-height: 90vh; 
-      overflow-y: auto; 
-      position: relative; 
-    }
-    .modal-close { 
-      position: absolute; 
-      right: 20px; 
-      top: 15px; 
-      font-size: 24px; 
-      cursor: pointer; 
-      color: #5f6368; 
-    }
-    .modal-content img { 
-      width: 100%; 
-      border-radius: 8px; 
-      object-fit: cover; 
-    }
-    .selector-box { 
-      display: flex; 
-      gap: 8px; 
-      margin: 10px 0; 
-      flex-wrap: wrap; 
-    }
-    .selector-item { 
-      padding: 6px 12px; 
-      border: 1px solid var(--border); 
-      border-radius: 4px; 
-      cursor: pointer; 
-      font-size: 14px; 
-      user-select: none;
-    }
-    .selector-item.selected { 
-      border-color: var(--primary); 
-      background: #e8f0fe; 
-      color: var(--primary); 
-      font-weight: bold; 
-    }
-    .btn { 
-      background: var(--primary); 
-      color: white; 
-      border: none; 
-      padding: 12px 20px; 
-      border-radius: 6px; 
-      font-weight: bold; 
-      cursor: pointer; 
-      font-size: 15px; 
-      transition: background 0.2s; 
-    }
-    .btn:hover { 
-      background: #1557b0; 
-    }
-    .btn-secondary { 
-      background: #5f6368; 
-    }
-    .btn-secondary:hover { 
-      background: #45474a; 
-    }
-    .btn-danger { 
-      background: var(--danger); 
-    }
-    .btn-danger:hover { 
-      background: #b31412; 
-    }
-    .form-control { 
-      width: 100%; 
-      padding: 10px; 
-      border: 1px solid var(--border); 
-      border-radius: 6px; 
-      box-sizing: border-box; 
-      margin-bottom: 15px; 
-      font-size: 14px; 
-    }
-    .admin-container { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 30px; 
-    }
-    .admin-box { 
-      background: white; 
-      border: 1px solid var(--border); 
-      padding: 25px; 
-      border-radius: 8px; 
+    header .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.5); transform: none; box-shadow: none; }
+    header .btn { padding: 9px 16px; font-size: 13.5px; }
+
+    .container { max-width: 1240px; margin: 0 auto; padding: 44px 28px 96px; }
+    .view-section { display: none; }
+    .view-section.active { display: block; animation: aparecer 0.35s ease both; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes emerger { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+    #txt-bienvenida { font-size: clamp(26px, 4vw, 38px); font-weight: 700; letter-spacing: -0.025em; }
+    #txt-bienvenida::after {
+      content: ''; display: block; width: 56px; height: 3px; margin: 16px auto 0;
+      background: var(--primary); border-radius: 3px;
     }
 
-    /* ===== AÑADIDOS: carrito, pestañas admin, tablas (mismo estilo visual) ===== */
-    .fab-carrito { position: fixed; right: 20px; bottom: 20px; z-index: 900; border-radius: 999px; padding: 14px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
-    .fab-carrito span { background: white; color: var(--primary); border-radius: 10px; padding: 1px 8px; margin-left: 6px; font-size: 13px; }
-    .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--dark); color: white; padding: 10px 18px; border-radius: 6px; z-index: 2000; font-size: 14px; }
-    .cart-item { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
-    .cart-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; background: var(--light); }
-    .qty-box { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
-    .qty-box button { width: 28px; height: 28px; border: 1px solid var(--border); background: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .resumen-row { display: flex; justify-content: space-between; padding: 4px 0; }
-    .resumen-total { font-size: 20px; font-weight: bold; background: #e8f0fe; padding: 10px; border-radius: 6px; color: #1557b0; margin-top: 8px; }
-    .caja-info { background: #f4f6f9; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 14px; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-    .tab-btn { background: white; border: 1px solid var(--border); padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #5f6368; font-size: 14px; }
-    .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    /* ----- Buscador ----- */
+    .search-bar { max-width: 580px; margin: 0 auto 44px; }
+    .search-bar input {
+      width: 100%; padding: 15px 20px 15px 50px; font: inherit; font-size: 15px;
+      border: 1px solid var(--border); border-radius: 14px; background: #fff;
+      box-shadow: var(--shadow-sm); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%236c6c78' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><path d='m21 21-4.3-4.3'/></svg>");
+      background-repeat: no-repeat; background-position: 18px center;
+    }
+    .search-bar input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-ring); }
+
+    /* ----- Catálogo y tarjetas de producto ----- */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 30px; }
+    .product-card {
+      display: flex; flex-direction: column;
+      background: #fff; border: 1px solid var(--border); border-radius: 18px; overflow: hidden; cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.3s cubic-bezier(.2, .8, .2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .product-card:hover { transform: translateY(-7px); box-shadow: var(--shadow-lg); border-color: rgba(74, 20, 140, 0.35); }
+    .product-card img {
+      width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--light);
+      transition: transform 0.6s cubic-bezier(.2, .8, .2, 1);
+    }
+    .product-card:hover img { transform: scale(1.06); }
+    .product-card-body { padding: 22px 24px 26px; display: flex; flex-direction: column; flex: 1; position: relative; background: #fff; }
+    .product-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 650; line-height: 1.3; }
+    .product-card .price { font-size: 21px; font-weight: 700; color: var(--primary); margin-bottom: 12px; letter-spacing: -0.02em; }
+    .product-card-body p {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .chip-cashback {
+      display: inline-block; align-self: flex-start;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+      color: var(--primary); background: var(--primary-soft); border: 1px solid rgba(74, 20, 140, 0.15);
+      padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+    }
+    .chip-cashback:empty { display: none; }
+
+    /* ----- Modales ----- */
+    .modal {
+      position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center;
+      padding: 20px; background: rgba(14, 14, 16, 0.64); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    }
+    .modal.active { display: flex; animation: aparecer 0.25s ease both; }
+    .modal-content {
+      position: relative; width: 100%; max-width: 1000px; max-height: 92vh; overflow-y: auto;
+      display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px;
+      padding: 36px; background: #fff; border-radius: 22px;
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.42);
+      animation: emerger 0.32s cubic-bezier(.2, .8, .2, 1) both;
+    }
+    .modal-content h2 { margin-top: 0; font-size: 24px; font-weight: 700; }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px; z-index: 5;
+      width: 36px; height: 36px; display: grid; place-items: center;
+      font-size: 22px; line-height: 1; color: var(--graphite); background: var(--light); border-radius: 50%;
+      cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.2s;
+    }
+    .modal-close:hover { background: var(--dark); color: #fff; transform: rotate(90deg); }
+
+    /* ----- Galería de imágenes ----- */
+    .galeria { min-width: 0; }
+    .galeria-principal {
+      position: relative; aspect-ratio: 1 / 1; overflow: hidden;
+      background: var(--light); border: 1px solid var(--border); border-radius: 18px;
+      touch-action: pan-y;
+    }
+    .galeria-principal img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: opacity 0.22s ease, transform 0.35s ease;
+    }
+    .galeria-principal img.desvanecida { opacity: 0; transform: scale(1.02); }
+    .galeria-flecha {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 42px; height: 42px; border: none; border-radius: 50%;
+      display: none; align-items: center; justify-content: center;
+      font-size: 24px; line-height: 1; color: #fff; cursor: pointer;
+      background: rgba(14, 14, 16, 0.55); backdrop-filter: blur(4px);
+      transition: background 0.2s, transform 0.2s;
+    }
+    .galeria-flecha:hover { background: var(--primary); transform: translateY(-50%) scale(1.08); }
+    .galeria-flecha.izq { left: 12px; }
+    .galeria-flecha.der { right: 12px; }
+    .galeria.multiple .galeria-flecha { display: flex; }
+    .galeria-contador {
+      position: absolute; right: 12px; bottom: 12px; padding: 3px 11px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; color: #fff; background: rgba(14, 14, 16, 0.6);
+    }
+    .galeria-contador:empty { display: none; }
+    .galeria-miniaturas { display: none; gap: 10px; margin-top: 14px; padding: 4px 2px 8px; overflow-x: auto; scroll-snap-type: x proximity; }
+    .galeria.multiple .galeria-miniaturas { display: flex; }
+    .miniatura {
+      flex: 0 0 76px; height: 76px; padding: 0; overflow: hidden; scroll-snap-align: start;
+      border: 2px solid transparent; border-radius: 12px; background: var(--light); cursor: pointer; opacity: 0.68;
+      transition: opacity 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .miniatura img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .miniatura:hover { opacity: 1; transform: translateY(-2px); }
+    .miniatura.activa { opacity: 1; border-color: var(--primary); box-shadow: 0 6px 14px -6px rgba(74, 20, 140, 0.6); }
+    .miniatura:focus-visible, .galeria-flecha:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
+
+    /* ----- Selección de talla / color (botones excluyentes tipo radio) ----- */
+    .selector-box { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+    .selector-item {
+      appearance: none; -webkit-appearance: none; font: inherit;
+      padding: 9px 18px; font-size: 14px; font-weight: 600; color: var(--graphite);
+      background: #fff; border: 1.5px solid var(--border); border-radius: 10px; cursor: pointer; user-select: none;
+      transition: border-color 0.2s, background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .selector-item:hover { border-color: var(--primary); color: var(--primary); }
+    .selector-item:active { transform: scale(0.97); }
+    .selector-item:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
+    .selector-item.selected, .selector-item[aria-checked="true"] {
+      color: #fff; background: var(--primary); border-color: var(--primary);
+      box-shadow: 0 8px 16px -8px rgba(74, 20, 140, 0.7);
+    }
+
+    /* ----- Botones ----- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 24px; font: inherit; font-size: 14.5px; font-weight: 600; letter-spacing: 0.01em; text-decoration: none;
+      color: #fff; background: var(--primary); border: 1px solid transparent; border-radius: 11px; cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+      transition: background 0.2s, transform 0.18s, box-shadow 0.25s, border-color 0.2s;
+    }
+    .btn:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 10px 20px -8px rgba(74, 20, 140, 0.6); }
+    .btn:active { transform: translateY(0) scale(0.99); box-shadow: 0 2px 6px -2px rgba(74, 20, 140, 0.5); }
+    .btn:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-secondary { color: var(--graphite); background: #fff; border-color: var(--border); box-shadow: var(--shadow-sm); }
+    .btn-secondary:hover { background: var(--light); border-color: #cfcfd8; box-shadow: var(--shadow-md); }
+    .btn-dark { background: var(--dark); }
+    .btn-dark:hover { background: var(--graphite); box-shadow: 0 10px 20px -8px rgba(14, 14, 16, 0.6); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #8f1d17; box-shadow: 0 10px 20px -8px rgba(179, 38, 30, 0.55); }
+    .btn-descarga { display: flex; width: 100%; margin-top: 14px; padding: 14px 20px; font-size: 15px; }
+
+    /* ----- Formularios y panel de administración ----- */
+    .form-control {
+      width: 100%; margin-bottom: 15px; padding: 12px 14px; font: inherit; font-size: 14.5px; color: var(--ink);
+      background: #fff; border: 1px solid var(--border); border-radius: 10px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-ring); }
+    textarea.form-control { resize: vertical; }
+    .admin-container { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    .admin-box { background: #fff; border: 1px solid var(--border); border-radius: 18px; padding: 30px; box-shadow: var(--shadow-sm); min-width: 0; }
+    .admin-box h3 { margin-top: 0; font-size: 18px; font-weight: 700; }
+    #vista-admin > div:first-child h2 { margin: 0; font-size: 26px; font-weight: 700; }
+
+    .miniaturas-admin { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 6px; }
+    .mini-admin { position: relative; width: 92px; }
+    .mini-admin .marco { position: relative; width: 92px; height: 92px; overflow: hidden; border: 2px solid var(--border); border-radius: 12px; background: var(--light); }
+    .mini-admin.principal .marco { border-color: var(--primary); box-shadow: 0 6px 14px -6px rgba(74, 20, 140, 0.6); }
+    .mini-admin img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .mini-admin .quitar {
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; padding: 0; line-height: 1;
+      font-size: 13px; color: #fff; background: rgba(14, 14, 16, 0.75); border: none; border-radius: 50%; cursor: pointer;
+    }
+    .mini-admin .quitar:hover { background: var(--danger); }
+    .mini-admin .etiqueta { display: block; margin-top: 5px; font-size: 11px; text-align: center; font-weight: 600; color: var(--primary); }
+    .mini-admin .hacer-principal { display: block; width: 100%; margin-top: 5px; padding: 0; font: inherit; font-size: 11px; color: var(--muted); background: none; border: none; text-decoration: underline; cursor: pointer; }
+    .mini-admin .hacer-principal:hover { color: var(--primary); }
+
+    /* ----- Carrito flotante, avisos y checkout ----- */
+    .fab-carrito {
+      position: fixed; right: 22px; bottom: 22px; z-index: 900; padding: 15px 24px; border-radius: 999px;
+      background: var(--dark); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.6);
+    }
+    .fab-carrito:hover { background: var(--primary); }
+    .fab-carrito span { margin-left: 4px; padding: 1px 9px; font-size: 13px; color: #fff; background: var(--primary); border-radius: 10px; }
+    .fab-carrito:hover span { background: #fff; color: var(--primary); }
+    .toast {
+      position: fixed; left: 50%; bottom: 96px; z-index: 2000; transform: translateX(-50%);
+      padding: 12px 20px; font-size: 14px; font-weight: 500; color: #fff;
+      background: var(--dark); border-left: 4px solid var(--primary); border-radius: 10px;
+      box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.6); animation: emerger 0.3s ease both;
+    }
+    .cart-item { display: grid; grid-template-columns: 68px 1fr auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .cart-item img { width: 68px; height: 68px; object-fit: cover; background: var(--light); border-radius: 12px; }
+    .qty-box { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    .qty-box button {
+      width: 30px; height: 30px; font-weight: 700; color: var(--graphite); background: #fff;
+      border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .qty-box button:hover { color: #fff; background: var(--primary); border-color: var(--primary); }
+    .resumen-row { display: flex; justify-content: space-between; padding: 5px 0; }
+    .resumen-total { margin-top: 10px; padding: 14px 16px; font-size: 20px; font-weight: 700; color: var(--primary-dark); background: var(--primary-soft); border-radius: 12px; }
+    .caja-info { margin: 14px 0; padding: 16px; font-size: 14px; background: var(--light); border: 1px solid var(--border); border-radius: 14px; }
+    .caja-info .qr-img { max-width: 230px; width: 100%; background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 8px; box-shadow: var(--shadow-sm); }
+
+    /* ----- Pestañas, tablas e insignias del panel ----- */
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; padding: 6px; background: #fff; border: 1px solid var(--border); border-radius: 14px; width: fit-content; max-width: 100%; }
+    .tab-btn { padding: 10px 18px; font: inherit; font-size: 14px; font-weight: 600; color: var(--muted); background: transparent; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s, color 0.2s; }
+    .tab-btn:hover { color: var(--ink); background: var(--light); }
+    .tab-btn.active { color: #fff; background: var(--primary); }
     .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .tab-panel.active { display: block; animation: aparecer 0.3s ease both; }
     .tabla-wrap { overflow-x: auto; }
     .tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tabla th, .tabla td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    .tabla th { background: var(--light); white-space: nowrap; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; background: #e8f0fe; color: var(--primary); }
-    .badge.pagado, .badge.entregado { background: #e6f4ea; color: #188038; }
-    .badge.pendiente { background: #fef7e0; color: #b06000; }
-    .badge.cancelado { background: #fce8e6; color: var(--danger); }
-    .tabla .btn { padding: 5px 10px; font-size: 12px; margin: 2px 2px 2px 0; }
-    @media (max-width: 760px) {
+    .tabla th, .tabla td { padding: 11px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+    .tabla th { font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; color: var(--muted); background: var(--light); }
+    .tabla tbody tr:hover { background: #fafafc; }
+    .tabla .btn { margin: 2px 2px 2px 0; padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .badge { display: inline-block; padding: 3px 10px; font-size: 12px; font-weight: 600; color: var(--primary); background: var(--primary-soft); border-radius: 999px; }
+    .badge.pagado, .badge.entregado { color: var(--success); background: var(--success-soft); }
+    .badge.pendiente { color: var(--warning); background: var(--warning-soft); }
+    .badge.cancelado { color: var(--danger); background: var(--danger-soft); }
+
+    /* ----- Adaptación a móviles ----- */
+    @media (max-width: 860px) {
+      header { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+      .container { padding: 28px 16px 96px; }
       .admin-container { grid-template-columns: 1fr; }
-      .modal-content { grid-template-columns: 1fr; }
-      header { padding: 12px 15px; flex-wrap: wrap; gap: 8px; }
+      .modal-content { grid-template-columns: 1fr; gap: 24px; padding: 22px; border-radius: 18px; }
+      .grid { gap: 20px; }
+    }
+    @media (max-width: 520px) {
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+      .product-card-body { padding: 14px 14px 18px; }
+      .product-card h3 { font-size: 15px; }
+      .product-card .price { font-size: 17px; }
+      .product-card-body p { display: none; }
+      .miniatura { flex-basis: 64px; height: 64px; }
     }
   </style>
 </head>
@@ -325,10 +394,10 @@
             <input type="text" id="prod-colores" placeholder="Colores disponibles (ej: Negro, Azul, Blanco)" class="form-control">
 
             <div style="margin-bottom: 15px;">
-              <label style="font-weight:bold; display:block; margin-bottom:5px;">Imagen del Producto:</label>
-              <input type="file" id="prod-file" class="form-control" accept="image/*" onchange="procesarImagenBase64()">
-              <input type="hidden" id="prod-imagen-b64">
-              <img id="prod-preview" alt="Vista previa" style="display:none; max-width:140px; border-radius:6px;">
+              <label style="font-weight:bold; display:block; margin-bottom:5px;">Imágenes del Producto (la primera es la principal):</label>
+              <input type="file" id="prod-file" class="form-control" accept="image/*" multiple onchange="agregarImagenesProducto()" style="margin-bottom:6px;">
+              <div id="prod-imagenes-lista" class="miniaturas-admin"></div>
+              <small style="color:var(--muted);">Hasta 8 imágenes. Se optimizan automáticamente antes de subirlas.</small>
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
@@ -336,7 +405,7 @@
             <input type="text" id="prod-whatsapp" placeholder="WhatsApp Específico para este producto (8 dígitos)" class="form-control">
             <input type="text" id="prod-redes-fb" placeholder="Enlace de Facebook para este producto" class="form-control">
             <input type="text" id="prod-redes-ig" placeholder="Enlace de Instagram para este producto" class="form-control">
-            <button class="btn" id="btn-publicar" style="background:#27ae60; width:100%;" onclick="publicarArticuloNuevo()">Publicar Producto Permanentemente</button>
+            <button class="btn" id="btn-publicar" style="width:100%;" onclick="publicarArticuloNuevo()">Publicar Producto Permanentemente</button>
           </div>
         </div>
 
@@ -359,7 +428,7 @@
         <div class="admin-box">
           <h3>Historial de compras totales</h3>
           <div id="resumen-compras" class="caja-info"></div>
-          <p style="font-size:13px; color:#5f6368;">El cashback se acredita al cliente cuando marcas el pedido como <strong>pagado</strong> (verifica antes la transferencia). Si cancelas, se devuelven los puntos usados.</p>
+          <p style="font-size:13px; color:var(--muted);">El cashback se acredita al cliente cuando marcas el pedido como <strong>pagado</strong> (verifica antes la transferencia). Si cancelas, se devuelven los puntos usados.</p>
           <div id="contenido-compras" class="tabla-wrap"></div>
         </div>
       </div>
@@ -382,14 +451,20 @@
   <div class="modal" id="modal-detalle">
     <div class="modal-content">
       <span class="modal-close" onclick="cerrarModalDetalle()">×</span>
-      <div>
-        <img id="md-imagen" src="" alt="Vista previa del artículo">
+      <div class="galeria" id="md-galeria">
+        <div class="galeria-principal" id="md-principal">
+          <img id="md-imagen" alt="Imagen del artículo">
+          <button type="button" class="galeria-flecha izq" aria-label="Imagen anterior" onclick="moverGaleria(-1)">&#8249;</button>
+          <button type="button" class="galeria-flecha der" aria-label="Imagen siguiente" onclick="moverGaleria(1)">&#8250;</button>
+          <span class="galeria-contador" id="md-contador"></span>
+        </div>
+        <div class="galeria-miniaturas" id="md-miniaturas" role="tablist" aria-label="Miniaturas del producto"></div>
       </div>
       <div>
         <h2 id="md-titulo" style="margin-top:0;"></h2>
-        <p id="md-descripcion" style="color:#5f6368; line-height:1.5;"></p>
+        <p id="md-descripcion" style="color:var(--muted); line-height:1.5;"></p>
         <div style="font-size:24px; font-weight:bold; color:var(--primary); margin: 15px 0;" id="md-precio-unitario"></div>
-        <div id="md-cashback" style="color:var(--success); font-weight:bold; font-size:14px; margin-bottom:10px;"></div>
+        <div id="md-cashback" class="chip-cashback" style="margin-bottom:10px;"></div>
 
         <div id="md-contenedor-tallas">
           <label style="font-weight:bold;">Selecciona Talla:</label>
@@ -406,12 +481,12 @@
           <input type="number" id="md-cantidad" value="1" min="1" max="99" class="form-control" style="width:80px; display:inline-block; margin-left:10px;" oninput="actualizarPrecioTotalFicha()">
         </div>
 
-        <div style="font-size:20px; font-weight:bold; margin-top:20px; background:#e8f0fe; padding:10px; border-radius:6px; color:#1557b0;">
+        <div class="resumen-total" style="margin-top:20px;">
           Precio Final: Bs. <span id="md-precio-total">0.00</span>
         </div>
 
-        <button class="btn" style="width:100%; margin-top:20px; background:var(--success);" onclick="agregarDesdeFicha(false)">Agregar al carrito</button>
-        <button class="btn" style="width:100%; margin-top:10px;" onclick="agregarDesdeFicha(true)">Comprar ahora</button>
+        <button class="btn" style="width:100%; margin-top:20px;" onclick="agregarDesdeFicha(false)">Agregar al carrito</button>
+        <button class="btn btn-dark" style="width:100%; margin-top:10px;" onclick="agregarDesdeFicha(true)">Comprar ahora</button>
       </div>
     </div>
   </div>
@@ -441,7 +516,7 @@
           <div class="resumen-row"><span>Descuento por puntos</span><span id="res-descuento">- Bs. 0.00</span></div>
           <div class="resumen-total resumen-row"><span>Total</span><span id="res-total">Bs. 0.00</span></div>
           <div id="res-cashback" style="color:var(--success); font-size:13px; margin-top:6px;"></div>
-          <button class="btn" id="btn-ir-pago" style="width:100%; margin-top:15px; background:var(--success);" onclick="irAPago()">Continuar con el pago</button>
+          <button class="btn" id="btn-ir-pago" style="width:100%; margin-top:15px;" onclick="irAPago()">Continuar con el pago</button>
         </div>
       </div>
 
@@ -464,7 +539,7 @@
         <input type="text" id="co-ref" class="form-control" maxlength="120" placeholder="Puedes completarlo después por WhatsApp">
 
         <div class="resumen-total resumen-row"><span>Total a pagar</span><span id="co-total">Bs. 0.00</span></div>
-        <button class="btn" id="btn-confirmar" style="width:100%; margin-top:15px; background:var(--success);" onclick="confirmarPedido()">Confirmar pedido</button>
+        <button class="btn" id="btn-confirmar" style="width:100%; margin-top:15px;" onclick="confirmarPedido()">Confirmar pedido</button>
         <button class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="volverAlCarrito()">← Volver al carrito</button>
       </div>
     </div>
@@ -475,7 +550,7 @@
     <div class="modal-content" style="grid-template-columns: 1fr; max-width: 420px; display:block;">
       <span class="modal-close" onclick="cerrarAuth()">×</span>
       <h2 id="auth-titulo" style="margin-top:0;">Ingresar</h2>
-      <p id="auth-aviso-admin" style="display:none; color:#5f6368; font-size:14px;">Acceso exclusivo para administradores.</p>
+      <p id="auth-aviso-admin" style="display:none; color:var(--muted); font-size:14px;">Acceso exclusivo para administradores.</p>
       <div id="auth-campos-registro" style="display:none;">
         <input type="text" id="auth-nombre" class="form-control" placeholder="Nombre completo" maxlength="120">
         <input type="tel" id="auth-tel" class="form-control" placeholder="Celular (8 dígitos, sin +591)" maxlength="11">
@@ -494,7 +569,7 @@
       <h2 style="color:var(--success); margin-top:0;">📋 Orden de Pedido Registrada</h2>
       <p>Tu pedido quedó registrado. Para confirmarlo, realiza el pago y envíanos el detalle por WhatsApp:</p>
 
-      <pre id="ticket-resumen" style="background:#f4f6f9; padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
+      <pre id="ticket-resumen" style="background:var(--light); padding:15px; border-radius:6px; text-align:left; font-family:monospace; white-space:pre-wrap;"></pre>
 
       <div id="comp-pago" class="caja-info"></div>
       <div id="comp-cashback" style="color:var(--success); font-weight:bold; font-size:14px; margin-bottom:10px;"></div>
@@ -504,6 +579,17 @@
          style="background:var(--success); display:block; margin-bottom:10px; width:100%; box-sizing:border-box; text-align:center; text-decoration:none;">💬 Enviar pedido por WhatsApp</a>
 
       <div id="redes-alternativas-container" style="margin-top:15px; display:flex; justify-content:center; gap:15px;"></div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: GUARDAR EL QR (navegadores integrados) ================= -->
+  <div class="modal" id="modal-qr">
+    <div class="modal-content" style="grid-template-columns: 1fr; max-width: 420px; text-align: center; display:block;">
+      <span class="modal-close" onclick="cerrarModalQR()">×</span>
+      <h2 style="margin-top:0;">Guarda tu código QR</h2>
+      <p style="color:var(--muted); font-size:14px;">Mantén presionada la imagen y elige <strong>“Guardar imagen”</strong>. También puedes tomar una captura de pantalla.</p>
+      <img id="qr-grande" alt="Código QR de pago" class="qr-img" style="max-width:280px; width:100%; background:#fff; border:1px solid var(--border); border-radius:14px; padding:8px;">
+      <a id="qr-abrir" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer" style="width:100%; margin-top:14px;">Abrir imagen en el navegador</a>
     </div>
   </div>
 
@@ -609,7 +695,7 @@
       const container = $('catalogo-grid-container');
       container.innerHTML = "";
       if (lista.length === 0) {
-        container.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:#5f6368; padding: 40px 0;'>No hay productos disponibles por el momento.</p>";
+        container.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:var(--muted); padding: 40px 0;'>No hay productos disponibles por el momento.</p>";
         return;
       }
       lista.forEach(p => {
@@ -622,8 +708,8 @@
           <div class="product-card-body">
             <h3>${esc(p.nombre)}</h3>
             <div class="price">${bs(p.precio)}</div>
-            ${pct > 0 ? `<div style="font-size:12px; font-weight:bold; color:var(--success); margin-bottom:8px;">⭐ Gana ${pct}% en puntos</div>` : ''}
-            <p style="font-size:13px; color:#5f6368; margin:0; line-height: 1.4;">${esc(p.descripcion || '')}</p>
+            ${pct > 0 ? `<div class="chip-cashback">⭐ Gana ${pct}% en puntos</div>` : ''}
+            <p style="font-size:13px; color:var(--muted); margin:0; line-height: 1.4;">${esc(p.descripcion || '')}</p>
           </div>
         `;
         container.appendChild(item);
@@ -648,51 +734,102 @@
       $('md-titulo').innerText = p.nombre;
       $('md-descripcion').innerText = p.descripcion || 'Sin descripción disponible.';
       $('md-precio-unitario').innerText = bs(p.precio);
-      $('md-imagen').src = urlImg(p.imagen_url);
+      configurarGaleria(p);
       const pct = num(p.cashback_pct);
       $('md-cashback').innerText = pct > 0 ? `⭐ Gana ${pct}% en puntos (Bs. ${r2(num(p.precio) * pct / 100).toFixed(2)} por unidad)` : '';
 
-      const divTallas = $('md-lista-tallas');
-      if (p.tallas && p.tallas.trim() !== "") {
-        divTallas.innerHTML = "";
-        p.tallas.split(',').forEach(t => {
-          const s = document.createElement('div');
-          s.className = 'selector-item';
-          s.innerText = t.trim();
-          s.onclick = () => {
-            [...divTallas.children].forEach(c => c.classList.remove('selected'));
-            s.classList.add('selected');
-            tallaSeleccionada = t.trim();
-          };
-          divTallas.appendChild(s);
-        });
-        $('md-contenedor-tallas').style.display = 'block';
-      } else {
-        $('md-contenedor-tallas').style.display = 'none';
-      }
-
-      const divColores = $('md-lista-colores');
-      if (p.colores && p.colores.trim() !== "") {
-        divColores.innerHTML = "";
-        p.colores.split(',').forEach(c => {
-          const s = document.createElement('div');
-          s.className = 'selector-item';
-          s.innerText = c.trim();
-          s.onclick = () => {
-            [...divColores.children].forEach(x => x.classList.remove('selected'));
-            s.classList.add('selected');
-            colorSeleccionada = c.trim();
-          };
-          divColores.appendChild(s);
-        });
-        $('md-contenedor-colores').style.display = 'block';
-      } else {
-        $('md-contenedor-colores').style.display = 'none';
-      }
+      // Selección única estricta: una talla y un color como máximo (botones excluyentes tipo radio)
+      const hayTallas = p.tallas ? renderOpciones($('md-lista-tallas'), p.tallas.split(','), v => { tallaSeleccionada = v; }) > 0 : false;
+      $('md-contenedor-tallas').style.display = hayTallas ? 'block' : 'none';
+      const hayColores = p.colores ? renderOpciones($('md-lista-colores'), p.colores.split(','), v => { colorSeleccionada = v; }) > 0 : false;
+      $('md-contenedor-colores').style.display = hayColores ? 'block' : 'none';
 
       actualizarPrecioTotalFicha();
       $('modal-detalle').classList.add('active');
     }
+
+    // ---------- Selección única (tipo radio) de talla y color ----------
+    // Devuelve la cantidad de opciones. El estado vive en una sola variable por grupo, así que
+    // nunca puede haber más de una opción marcada; además se eliminan opciones repetidas.
+    function renderOpciones(cont, valores, alElegir) {
+      cont.innerHTML = '';
+      const opciones = [...new Set(valores.map(v => v.trim()).filter(Boolean))];
+      const botones = opciones.map((valor, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'selector-item';
+        b.setAttribute('role', 'radio');
+        b.setAttribute('aria-checked', 'false');
+        b.tabIndex = i === 0 ? 0 : -1;
+        b.textContent = valor;
+        b.addEventListener('click', () => elegir(i, false));
+        cont.appendChild(b);
+        return b;
+      });
+      function elegir(idx, enfocar) {
+        botones.forEach((b, j) => {
+          const activo = j === idx;
+          b.classList.toggle('selected', activo);
+          b.setAttribute('aria-checked', activo ? 'true' : 'false');
+          b.tabIndex = activo ? 0 : -1;
+        });
+        if (enfocar) botones[idx].focus();
+        alElegir(opciones[idx]);
+      }
+      cont.setAttribute('role', 'radiogroup');
+      cont.onkeydown = e => {
+        const pasos = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+        if (!(e.key in pasos) || !botones.length) return;
+        e.preventDefault();
+        const actual = Math.max(0, botones.indexOf(document.activeElement));
+        elegir((actual + pasos[e.key] + botones.length) % botones.length, true);
+      };
+      return opciones.length;
+    }
+
+    // ---------- Galería de imágenes del producto ----------
+    let galeriaActual = [];
+    let galeriaIdx = 0;
+    let galeriaTimer = null;
+    function imagenesDe(p) {
+      let lista = p.imagenes;
+      if (typeof lista === 'string') { try { lista = JSON.parse(lista); } catch (e) { lista = []; } }
+      lista = Array.isArray(lista) ? lista.filter(u => typeof u === 'string' && u) : [];
+      if (!lista.length && p.imagen_url) lista = [p.imagen_url];   // productos anteriores con una sola imagen
+      return lista.length ? lista : [IMG_VACIA];
+    }
+    function configurarGaleria(p) {
+      galeriaActual = imagenesDe(p);
+      $('md-galeria').classList.toggle('multiple', galeriaActual.length > 1);
+      $('md-miniaturas').innerHTML = galeriaActual.map((u, i) =>
+        `<button type="button" class="miniatura" role="tab" aria-label="Ver imagen ${i + 1}" onclick="mostrarImagen(${i})"><img src="${esc(urlImg(u))}" alt="" loading="lazy"></button>`
+      ).join('');
+      mostrarImagen(0, true);
+    }
+    function mostrarImagen(i, inmediato) {
+      const n = galeriaActual.length;
+      if (!n) return;
+      i = ((i % n) + n) % n;
+      galeriaIdx = i;
+      const miniaturas = [...document.querySelectorAll('#md-miniaturas .miniatura')];
+      miniaturas.forEach((m, j) => { m.classList.toggle('activa', j === i); m.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+      $('md-contador').textContent = n > 1 ? `${i + 1} / ${n}` : '';
+      const img = $('md-imagen');
+      const url = urlImg(galeriaActual[i]);
+      clearTimeout(galeriaTimer);
+      if (inmediato) { img.src = url; img.classList.remove('desvanecida'); return; }
+      if (miniaturas[i]) miniaturas[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      img.classList.add('desvanecida');                       // se desvanece la imagen actual...
+      galeriaTimer = setTimeout(() => {                        // ...y se muestra la nueva ya precargada
+        const pre = new Image();
+        pre.onload = pre.onerror = () => {
+          if (galeriaIdx !== i) return;                        // el cliente ya eligió otra miniatura
+          img.src = url; img.classList.remove('desvanecida');
+        };
+        pre.src = url;
+      }, 140);
+    }
+    function moverGaleria(d) { mostrarImagen(galeriaIdx + d); }
 
     function actualizarPrecioTotalFicha() {
       if (!productoSeleccionadoActual) return;
@@ -772,7 +909,7 @@
       $('puntos-logueado').style.display = sesion ? 'block' : 'none';
       $('puntos-invitado').style.display = sesion ? 'none' : 'block';
       if (!carrito.length) {
-        cont.innerHTML = "<p style='text-align:center; color:#5f6368; padding:30px 0;'>Tu carrito está vacío.</p>";
+        cont.innerHTML = "<p style='text-align:center; color:var(--muted); padding:30px 0;'>Tu carrito está vacío.</p>";
         $('carrito-resumen').style.display = 'none';
         return;
       }
@@ -784,7 +921,7 @@
             <img src="${esc(urlImg(p.imagen_url))}" alt="">
             <div>
               <strong>${esc(p.nombre)}</strong>
-              <div style="font-size:12px; color:#5f6368;">${esc(variante(i))}</div>
+              <div style="font-size:12px; color:var(--muted);">${esc(variante(i))}</div>
               <div style="font-size:14px; color:var(--primary); font-weight:bold;">${bs(p.precio)} c/u</div>
             </div>
             <div>
@@ -816,12 +953,54 @@
       const qr = urlLink(cacheConfig.cfg_qr_pago);
       const banco = cacheConfig.cfg_banco_datos || '';
       let h = '<div style="text-align:center;">';
-      if (qr) h += `<img src="${esc(qr)}" alt="QR de pago" style="max-width:220px; width:100%; border:1px solid var(--border); border-radius:8px; background:white;">`;
+      if (qr) {
+        h += `<img class="qr-img" src="${esc(qr)}" alt="QR de pago">`;
+        // Enlace real con "download": la API responde con Content-Disposition: attachment (descarga forzada nativa)
+        h += `<a class="btn btn-descarga" href="/api/qr-pago" download="qr-pago" onclick="return clickDescargaQR(event)">📥 Descargar Imagen QR</a>`;
+      }
       if (banco) h += `<div style="white-space:pre-line; margin-top:10px; text-align:left; font-size:14px;">${esc(banco)}</div>`;
-      if (!qr && !banco) h += '<p style="color:#5f6368; margin:0;">Te enviaremos los datos de pago por WhatsApp al confirmar el pedido.</p>';
+      if (!qr && !banco) h += '<p style="color:var(--muted); margin:0;">Te enviaremos los datos de pago por WhatsApp al confirmar el pedido.</p>';
       h += `<div style="font-size:18px; font-weight:bold; margin-top:10px;">Monto a pagar: ${bs(total)}</div></div>`;
       return h;
     }
+    // ---------- Descarga del QR de pago ----------
+    function esWebView() { // navegadores integrados de WhatsApp, Facebook, Instagram, TikTok, Android WebView...
+      return /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|MicroMessenger|TikTok|musical_ly|; wv\)/i.test(navigator.userAgent || '');
+    }
+    function clickDescargaQR(ev) {
+      if (!esWebView()) return true;   // navegador normal: la descarga nativa del enlace funciona sola
+      ev.preventDefault();
+      descargarQRWebView();
+      return false;
+    }
+    async function descargarQRWebView() {
+      try {
+        const r = await fetch('/api/qr-pago');
+        if (!r.ok) throw new Error('qr');
+        const blob = await r.blob();
+        const ext = ({ 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' })[blob.type] || 'png';
+        const archivo = new File([blob], `qr-pago.${ext}`, { type: blob.type });
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {   // hoja "Guardar imagen / Compartir"
+          try { await navigator.share({ files: [archivo], title: 'QR de pago' }); return; }
+          catch (e) { if (e && e.name === 'AbortError') return; }
+        }
+        const enlace = document.createElement('a');
+        enlace.href = URL.createObjectURL(blob);
+        enlace.download = archivo.name;
+        document.body.appendChild(enlace); enlace.click(); enlace.remove();
+        setTimeout(() => URL.revokeObjectURL(enlace.href), 5000);
+      } catch (e) { /* sin conexión o sin QR configurado */ }
+      mostrarAyudaQR();   // muchos navegadores integrados ignoran las descargas: se ofrece guardar con pulsación larga
+    }
+    function mostrarAyudaQR() {
+      const u = urlLink(cacheConfig.cfg_qr_pago);
+      if (!u) return;
+      $('qr-grande').src = u;
+      $('qr-abrir').href = u;
+      $('modal-qr').classList.add('active');
+    }
+    function cerrarModalQR() { $('modal-qr').classList.remove('active'); }
+
     function irAPago() {
       const t = calcularTotales();
       if (!t.lineas.length) return;
@@ -933,7 +1112,7 @@
       } else {
         const pts = sesion.perfil ? num(sesion.perfil.puntos) : 0;
         h = `<span style="font-size:14px;">Hola, <strong>${esc((sesion.perfil && sesion.perfil.nombre) || sesion.user.email)}</strong></span>
-             <span class="badge" style="background:#e6f4ea; color:#188038;">⭐ Bs. ${pts.toFixed(2)} en puntos</span>
+             <span class="badge" style="background:var(--success-soft); color:var(--success);">⭐ Bs. ${pts.toFixed(2)} en puntos</span>
              ${sesion.es_admin ? `<button class="btn btn-secondary" id="btn-cambiar-vista" onclick="solicitarAccesoAdmin()">Panel Admin</button>` : ''}
              <button class="btn btn-secondary" onclick="cerrarSesion()">Salir</button>`;
       }
@@ -1024,12 +1203,12 @@
       const div = $('tabla-gestion-productos');
       div.innerHTML = "";
       if (lista.length === 0) {
-        div.innerHTML = "<p style='color:#5f6368; padding: 15px 0;'>No hay productos en inventario.</p>";
+        div.innerHTML = "<p style='color:var(--muted); padding: 15px 0;'>No hay productos en inventario.</p>";
         return;
       }
       lista.forEach(p => {
         const row = document.createElement('div');
-        row.style = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #dadce0; padding:12px 0; gap:10px; flex-wrap:wrap;";
+        row.style = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding:12px 0; gap:10px; flex-wrap:wrap;";
         row.innerHTML = `
           <span style="flex:1; min-width:160px;"><strong>${esc(p.nombre)}</strong></span>
           <span style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
@@ -1071,18 +1250,32 @@
       });
     }
 
-    // Reduce la foto en el navegador (máx. 1200 px) y la deja lista para subir a Supabase Storage
-    async function procesarImagenBase64() {
-      const file = $('prod-file').files[0];
-      const prev = $('prod-preview');
-      $('prod-imagen-b64').value = '';
-      if (!file) { prev.style.display = 'none'; return; }
-      try {
-        const data = await comprimirImagen(file, 1200, 'image/jpeg', 0.82);
-        $('prod-imagen-b64').value = data;
-        prev.src = data; prev.style.display = 'block';
-      } catch (e) { alert(e.message); }
+    // ----- Varias imágenes por producto (máx. 8). Se reducen en el navegador (1200 px) y se suben una a una -----
+    const MAX_IMAGENES = 8;
+    let prodImagenes = []; // [{ data: 'data:image/jpeg;base64,...', url: null | 'https://...' }]
+
+    async function agregarImagenesProducto() {
+      const input = $('prod-file');
+      const archivos = [...input.files];
+      input.value = '';
+      if (!archivos.length) return;
+      const cupo = Math.max(0, MAX_IMAGENES - prodImagenes.length);
+      if (archivos.length > cupo) alert(`Máximo ${MAX_IMAGENES} imágenes por producto. Se agregarán solo ${cupo}.`);
+      for (const f of archivos.slice(0, cupo)) {
+        try { prodImagenes.push({ data: await comprimirImagen(f, 1200, 'image/jpeg', 0.82), url: null }); }
+        catch (e) { alert(`${f.name}: ${e.message}`); }
+      }
+      renderImagenesProducto();
     }
+    function renderImagenesProducto() {
+      $('prod-imagenes-lista').innerHTML = prodImagenes.map((im, i) => `
+        <div class="mini-admin ${i === 0 ? 'principal' : ''}">
+          <div class="marco"><img src="${esc(im.data)}" alt="Imagen ${i + 1}"><button type="button" class="quitar" aria-label="Quitar imagen" onclick="quitarImagenProducto(${i})">✕</button></div>
+          ${i === 0 ? '<span class="etiqueta">Principal</span>' : `<button type="button" class="hacer-principal" onclick="hacerPrincipalProducto(${i})">Hacer principal</button>`}
+        </div>`).join('');
+    }
+    function quitarImagenProducto(i) { prodImagenes.splice(i, 1); renderImagenesProducto(); }
+    function hacerPrincipalProducto(i) { prodImagenes.unshift(...prodImagenes.splice(i, 1)); renderImagenesProducto(); }
 
     function mostrarVistaPreviaQr() {
       const u = urlLink($('cfg-qr-pago').value);
@@ -1105,8 +1298,20 @@
       const nombre = $('prod-nombre').value;
       const precio = $('prod-precio').value;
       if (!nombre || !precio) return alert("El nombre y el precio son obligatorios para publicar.");
-      const btn = $('btn-publicar'); btn.disabled = true; btn.innerText = 'Subiendo imagen y publicando...';
+      const btn = $('btn-publicar'); btn.disabled = true; btn.innerText = 'Publicando...';
       try {
+        // 1) Cada imagen se sube por separado a Supabase Storage (evita el límite de 4.5 MB por petición)
+        const urls = [];
+        for (let i = 0; i < prodImagenes.length; i++) {
+          const im = prodImagenes[i];
+          if (!im.url) {
+            btn.innerText = `Subiendo imagen ${i + 1} de ${prodImagenes.length}...`;
+            im.url = (await apiFetch('/api/imagenes', { method: 'POST', body: { data: im.data } })).url;
+          }
+          urls.push(im.url);
+        }
+        // 2) Se guarda el producto con el arreglo de URLs
+        btn.innerText = 'Publicando...';
         await apiFetch('/api/productos', {
           method: 'POST',
           body: {
@@ -1115,14 +1320,16 @@
             descripcion: $('prod-descripcion').value,
             tallas: $('prod-tallas').value,
             colores: $('prod-colores').value,
-            imagen_url: $('prod-imagen-b64').value,
+            imagenes: urls,
+            imagen_url: urls[0] || '',
             whatsapp: $('prod-whatsapp').value,
             redes_json: { fb: $('prod-redes-fb').value, ig: $('prod-redes-ig').value }
           }
         });
         alert("¡Producto publicado exitosamente!");
-        ['prod-nombre', 'prod-precio', 'prod-descripcion', 'prod-tallas', 'prod-colores', 'prod-imagen-b64', 'prod-whatsapp', 'prod-redes-fb', 'prod-redes-ig', 'prod-file'].forEach(id => { $(id).value = ""; });
-        $('prod-cashback').value = 0; $('prod-preview').style.display = 'none';
+        ['prod-nombre', 'prod-precio', 'prod-descripcion', 'prod-tallas', 'prod-colores', 'prod-whatsapp', 'prod-redes-fb', 'prod-redes-ig'].forEach(id => { $(id).value = ""; });
+        $('prod-cashback').value = 0;
+        prodImagenes = []; renderImagenesProducto();
         await cargarAplicacionCompleta();
       } catch (e) {
         alert("Error al publicar: " + e.message);
@@ -1166,7 +1373,7 @@
     }
     const fecha = x => x ? new Date(x).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' }) : '';
     function tabla(cabeceras, filas) {
-      if (!filas.length) return "<p style='color:#5f6368; padding:15px 0;'>Aún no hay registros.</p>";
+      if (!filas.length) return "<p style='color:var(--muted); padding:15px 0;'>Aún no hay registros.</p>";
       return `<table class="tabla"><thead><tr>${cabeceras.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${filas.join('')}</tbody></table>`;
     }
     async function cargarTabAdmin(tab) {
@@ -1209,6 +1416,17 @@
     // ---------- Cierre de modales ----------
     function cerrarModalDetalle() { $('modal-detalle').classList.remove('active'); }
     function cerrarModalComprobante() { $('modal-comprobante').classList.remove('active'); }
+
+    (function () { // deslizar el dedo sobre la imagen principal cambia de foto
+      const el = $('md-principal');
+      let x0 = null;
+      el.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+      el.addEventListener('touchend', e => {
+        if (x0 === null) return;
+        const dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) > 40 && galeriaActual.length > 1) moverGaleria(dx < 0 ? 1 : -1);
+      });
+    })();
 
     window.onload = async () => {
       renderHeader();
