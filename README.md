@@ -36,7 +36,7 @@ Opcionales: `CORS_ORIGINS` para permitir otros dominios de frontend, `PG_POOL_MA
 4. Ejecuta las comprobaciones con `npm run check`.
 5. Inicia la API con `npm start` y abre `http://localhost:3000`.
 
-La API crea las tablas que necesita y aplica migraciones aditivas al iniciar. Los productos, clientes, pedidos y configuraciones existentes se conservan. Las nuevas tablas/columnas de promociones y descuentos se añaden sin borrar datos.
+La API crea las tablas que necesita y aplica migraciones al iniciar. Los productos, clientes, pedidos y configuraciones existentes se conservan. Las promociones anteriores se actualizan para dejar su compra mínima en cero; no se elimina ninguna promoción.
 
 ## Despliegue en GitHub y Vercel
 
@@ -51,7 +51,7 @@ Si tu frontend y API usan dominios distintos, agrega el origen exacto del fronte
 
 - Búsqueda y ordenamiento del catálogo por fecha, precio y nombre.
 - Seguimiento de pedido con código y últimos cuatro dígitos del teléfono.
-- Códigos de promoción por porcentaje o monto fijo, compra mínima, límite de usos y vencimiento.
+- Códigos promocionales personalizados por porcentaje o monto fijo, sin compra mínima; límite de usos y fechas de vigencia son opcionales.
 - Aplicación del cupón recalculada y validada en el servidor al crear el pedido.
 - Estadísticas de ventas, pedidos pendientes/confirmados/cancelados, ticket promedio e ingresos de los últimos siete días.
 - Gestión administrativa para crear, activar, desactivar y eliminar promociones.
@@ -92,7 +92,7 @@ Ejecuta `npm run check` para verificar sintaxis de la API y del frontend, IDs du
 - Si se cancela un pedido que ya había descontado inventario, las unidades se reintegran una sola vez. Si no hay existencias suficientes, la confirmación se rechaza y la transacción se revierte.
 - Configura el stock físico actual de cada variante antes de confirmar nuevas ventas. Los pedidos ya completados antes de activar el inventario no modifican el stock retroactivamente. Los pedidos históricos sin costo guardado se excluyen de las ganancias calculadas y se muestran como pedidos sin costo completo.
 - **Ganancia bruta** = subtotal del pedido − costo histórico de los productos. **Ganancia neta** = total cobrado (ya descuenta cupones y puntos utilizados) − cashback concedido − costo histórico de los productos. No incluye comisiones bancarias, impuestos ni otros gastos externos que no estén registrados en el sistema.
-- Los códigos promocionales pueden ser **públicos** (aparecen en la pestaña de promociones de la tienda) o **privados** (no se publican; se aplican únicamente cuando el cliente conoce e introduce el código). Ambos siguen sujetos a vigencia, compra mínima y límite de usos.
+- Los códigos promocionales pueden ser **públicos** (aparecen en la pestaña de promociones de la tienda) o **privados** (no se publican; se aplican únicamente cuando el cliente conoce e introduce el código). No exigen compra mínima; las fechas de vigencia y el límite de usos son opcionales.
 - El texto para WhatsApp ahora incluye un comprobante organizado con código, fecha, variantes, importes, descuentos, total y datos del cliente.
 
 La migración v2.2 añade `tienda_productos.stock_controlado`, la tabla `tienda_stock_variantes`, los indicadores `tienda_pedidos.stock_deducido` / `stock_reintegrado` y `tienda_promociones.publica`. Se ejecuta automáticamente al iniciar la API y no elimina productos, pedidos, clientes, promociones ni configuraciones existentes.
@@ -106,5 +106,13 @@ La migración v2.2 añade `tienda_productos.stock_controlado`, la tabla `tienda_
 - El módulo financiero independiente muestra ingresos cobrados, costo histórico de productos, ganancia bruta, cashback reconocido y ganancia neta, además del gráfico de los últimos siete días.
 - La pestaña pública de promociones se actualiza al abrirla y cuenta con un botón manual de actualización. Después de crear, activar, desactivar, hacer pública/privada o eliminar una promoción en administración, la vista pública se refresca automáticamente si está abierta. Las solicitudes a este endpoint se envían sin caché.
 - El endpoint administrativo de inventario devuelve nombre, imagen y precio de los productos junto con las variantes y costos; continúa protegido mediante `requiereAdmin`. El endpoint público `/api/productos` no expone costos de adquisición.
+
+## Códigos promocionales personalizados sin mínimo de compra (v2.3.1)
+
+- El administrador define el código; se normalizan tildes y espacios (por ejemplo, “NAVIDAD 2026” se guarda como `NAVIDAD-2026`).
+- No existe compra mínima: el descuento se puede aplicar a cualquier pedido con artículos.
+- El límite de usos y las fechas de vigencia siguen siendo opcionales.
+
+
 
 Las comprobaciones locales (`npm run check`) validan sintaxis del backend y frontend, IDs estáticos duplicados y referencias literales. La prueba real de flujos de compra, permisos y persistencia requiere las variables de entorno y la base PostgreSQL/Supabase del despliegue.

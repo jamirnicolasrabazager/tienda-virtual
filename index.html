@@ -609,13 +609,12 @@
       <div class="tab-panel" id="tab-promociones">
         <div class="admin-box">
           <h3>Crear código promocional</h3>
-          <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Los descuentos se verifican nuevamente en el servidor al confirmar cada pedido.</p>
+          <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Escribe el código que tú quieras. No exige compra mínima ni un monto mínimo de carrito; el descuento se aplica a cualquier pedido válido. La vigencia y el límite de usos son opcionales.</p>
           <div class="promo-form-grid">
-            <div><label for="promo-codigo">Código</label><input id="promo-codigo" class="form-control" maxlength="40" placeholder="BIENVENIDO10"></div>
+            <div><label for="promo-codigo">Tu código personalizado</label><input id="promo-codigo" class="form-control" maxlength="40" placeholder="MI-CODIGO, NAVIDAD2026..."><small style="color:var(--muted);">Puedes escribirlo con espacios o tildes; se guardará en mayúsculas y con guiones.</small></div>
             <div><label for="promo-descripcion">Descripción</label><input id="promo-descripcion" class="form-control" maxlength="250" placeholder="Descuento de bienvenida"></div>
             <div><label for="promo-tipo">Tipo de descuento</label><select id="promo-tipo" class="form-control"><option value="porcentaje">Porcentaje (%)</option><option value="monto">Monto fijo (Bs.)</option></select></div>
             <div><label for="promo-valor">Valor</label><input id="promo-valor" class="form-control" type="number" min="0.01" step="0.01" placeholder="10"></div>
-            <div><label for="promo-minimo">Compra mínima (Bs.)</label><input id="promo-minimo" class="form-control" type="number" min="0" step="0.01" value="0"></div>
             <div><label for="promo-max-usos">Límite de usos (opcional)</label><input id="promo-max-usos" class="form-control" type="number" min="1" step="1" placeholder="Sin límite"></div>
             <div><label for="promo-inicia">Válido desde (opcional)</label><input id="promo-inicia" class="form-control" type="datetime-local"></div>
             <div><label for="promo-vence">Válido hasta / vencimiento (opcional)</label><input id="promo-vence" class="form-control" type="datetime-local"></div>
@@ -844,6 +843,12 @@
     const num = n => Number(n) || 0;
     const r2 = n => Math.round(num(n) * 100) / 100;
     const bs = n => 'Bs. ' + num(n).toFixed(2);
+    function normalizarCodigoPromoUI(raw) {
+      return String(raw == null ? '' : raw).trim().normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '').toUpperCase()
+        .replace(/[^A-Z0-9_-]+/g, '-').replace(/-+/g, '-')
+        .replace(/^[-_]+|[-_]+$/g, '').slice(0, 40);
+    }
     const urlImg = u => /^(https?:\/\/|data:image\/)/i.test(u || '') ? u : IMG_VACIA;
     const urlLink = u => /^https?:\/\//i.test(u || '') ? u : '';
     const prodPorId = id => cacheProductos.find(p => p.id === id);
@@ -1182,7 +1187,7 @@
       return { lineas, subtotal, saldo, maxPts, puntos, promoDescuento, total, cashback };
     }
     async function aplicarCupon() {
-      const codigo = $('cupon-codigo').value.trim().toUpperCase();
+      const codigo = normalizarCodigoPromoUI($('cupon-codigo').value);
       if (!codigo) { quitarCupon(); return; }
       const btn = $('btn-cupon');
       btn.disabled = true; btn.innerText = 'Validando...';
@@ -1507,7 +1512,7 @@
           const descuento = p.tipo === 'porcentaje' ? `${num(p.valor)}% de descuento` : `${bs(p.valor)} de descuento`;
           const vigencia = `${inicia ? `Desde ${fecha(p.inicia_en)}` : 'Vigente'}${p.vence_en ? ` · Hasta ${fecha(p.vence_en)}` : ' · Sin fecha de vencimiento'}`;
           const cupo = p.usos_restantes == null ? '' : ` · Quedan ${num(p.usos_restantes)} usos`;
-          return `<article class="promo-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><code>${esc(p.codigo)}</code><button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="copiarCodigoPromo('${esc(p.codigo)}')">Copiar código</button></div><p><strong>${esc(descuento)}</strong></p><p>${esc(p.descripcion || 'Promoción especial')}</p><small>${esc(vigencia)}${p.minimo > 0 ? ` · Compra mínima: ${bs(p.minimo)}` : ''}${cupo}</small><p><span class="badge ${futura ? 'pendiente' : 'pagado'}">${futura ? 'Próximamente' : 'Disponible'}</span></p></article>`;
+          return `<article class="promo-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><code>${esc(p.codigo)}</code><button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="copiarCodigoPromo('${esc(p.codigo)}')">Copiar código</button></div><p><strong>${esc(descuento)}</strong></p><p>${esc(p.descripcion || 'Promoción especial')}</p><small>${esc(vigencia)}${cupo} · Sin compra mínima</small><p><span class="badge ${futura ? 'pendiente' : 'pagado'}">${futura ? 'Próximamente' : 'Disponible'}</span></p></article>`;
         }).join('');
       } catch (e) { target.innerHTML = `<p class="coupon-message error">${esc(e.message)}</p>`; }
     }
@@ -2051,11 +2056,11 @@
 
     async function cargarPromocionesAdmin() {
       const rows = await apiFetch('/api/admin/promociones');
-      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Mínimo', 'Usos', 'Desde', 'Vence', 'Visibilidad', 'Estado', 'Acciones'], rows.map(p => {
+      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Usos', 'Desde', 'Vence', 'Visibilidad', 'Estado', 'Acciones'], rows.map(p => {
         const valor = p.tipo === 'porcentaje' ? `${num(p.valor)}%` : bs(p.valor);
         const usos = `${p.usos}${p.max_usos ? ` / ${p.max_usos}` : ' / ∞'}`;
         const acciones = `<div class="promo-actions"><button class="btn btn-secondary" onclick="alternarPromocion(${p.id}, ${!p.activo})">${p.activo ? 'Desactivar' : 'Activar'}</button><button class="btn btn-secondary" onclick="alternarVisibilidadPromocion(${p.id}, ${p.publica === false})">${p.publica === false ? 'Hacer pública' : 'Hacer privada'}</button><button class="btn btn-danger" onclick="eliminarPromocion(${p.id})">Eliminar</button></div>`;
-        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${bs(p.minimo)}</td><td>${esc(usos)}</td><td>${esc(p.inicia_en ? fecha(p.inicia_en) : 'Inmediata')}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.publica === false ? 'pendiente' : 'pagado'}">${p.publica === false ? 'Privada' : 'Pública'}</span></td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
+        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${esc(usos)}</td><td>${esc(p.inicia_en ? fecha(p.inicia_en) : 'Inmediata')}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.publica === false ? 'pendiente' : 'pagado'}">${p.publica === false ? 'Privada' : 'Pública'}</span></td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
       }));
     }
     async function crearPromocion() {
@@ -2067,15 +2072,15 @@
           return d.toISOString();
         };
         const body = {
-          codigo: $('promo-codigo').value.trim().toUpperCase(), descripcion: $('promo-descripcion').value.trim(),
-          tipo: $('promo-tipo').value, valor: $('promo-valor').value, minimo: $('promo-minimo').value,
+          codigo: normalizarCodigoPromoUI($('promo-codigo').value), descripcion: $('promo-descripcion').value.trim(),
+          tipo: $('promo-tipo').value, valor: $('promo-valor').value,
           max_usos: $('promo-max-usos').value,
           inicia_en: fechaIso($('promo-inicia').value),
           vence_en: fechaIso($('promo-vence').value), publica: $('promo-publica').value === 'true'
         };
         await apiFetch('/api/admin/promociones', { method: 'POST', body });
         ['promo-codigo','promo-descripcion','promo-valor','promo-max-usos','promo-inicia','promo-vence'].forEach(id => { $(id).value = ''; });
-        $('promo-minimo').value = '0'; $('promo-publica').value = 'true';
+        $('promo-publica').value = 'true';
         toast('Promoción creada correctamente.');
         await cargarPromocionesAdmin();
         actualizarPromosTiendaSiAbierto();

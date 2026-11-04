@@ -76,6 +76,19 @@ const ah = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(n
 const r2 = n => Math.round((Number(n) || 0) * 100) / 100;
 const floor2 = n => Math.floor((Number(n) || 0) * 100 + 1e-9) / 100;
 const str = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
+// Los códigos los define el administrador. Se normalizan para que puedan escribirse
+// con espacios o tildes y usarse de forma consistente en la tienda.
+function normalizarCodigoPromocion(raw) {
+  return String(raw == null ? '' : raw)
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-_]+|[-_]+$/g, '')
+    .slice(0, 40);
+}
 const listaOpc = (txt, tipo = 'normal') => {
   const raw = String(txt || '');
   const partes = tipo === 'talla' && !/[,;|\n]/.test(raw)
@@ -222,6 +235,8 @@ async function inicializarBD() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_codigo ON tienda_pedidos(codigo)`);
   await pool.query(`ALTER TABLE tienda_promociones ADD COLUMN IF NOT EXISTS inicia_en TIMESTAMPTZ`);
   await pool.query(`ALTER TABLE tienda_promociones ADD COLUMN IF NOT EXISTS publica BOOLEAN NOT NULL DEFAULT true`);
+  // Las promociones ya no tienen compra mínima: migrar también los registros anteriores.
+  await pool.query(`UPDATE tienda_promociones SET minimo = 0 WHERE minimo <> 0`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_promociones_activa ON tienda_promociones(activo, inicia_en, vence_en)`);
   // Seguridad: si la base es Supabase, estas tablas quedarían expuestas con la clave pública (anon).
   // Con RLS activado y sin políticas, solo este servidor (conexión directa) puede leerlas o escribirlas.
@@ -498,7 +513,6 @@ function descuentoPromocion(promo, subtotal) {
   if (promo.inicia_en && new Date(promo.inicia_en).getTime() > Date.now()) return 0;
   if (promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) return 0;
   if (promo.max_usos != null && Number(promo.usos) >= Number(promo.max_usos)) return 0;
-  if (subtotal < Number(promo.minimo || 0)) return 0;
   const bruto = promo.tipo === 'porcentaje'
     ? subtotal * Number(promo.valor) / 100
     : Number(promo.valor);
@@ -506,13 +520,13 @@ function descuentoPromocion(promo, subtotal) {
 }
 
 app.get('/api/promociones/validar', rateLimit({ max: 30, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
-  const codigo = str(req.query.codigo, 40).toUpperCase();
+  const codigo = normalizarCodigoPromocion(req.query.codigo);
   const subtotal = Number(req.query.subtotal);
-  if (!/^[A-Z0-9_-]{3,40}$/.test(codigo) || !Number.isFinite(subtotal) || subtotal < 0) {
+  if (!/^[A-Z0-9_-]{1,40}$/.test(codigo) || !Number.isFinite(subtotal) || subtotal < 0) {
     throw new HttpError(400, 'Código promocional o subtotal inválido.');
   }
   const { rows: [promo] } = await pool.query(
-    'SELECT codigo, descripcion, tipo, valor, minimo, max_usos, usos, activo, inicia_en, vence_en FROM tienda_promociones WHERE codigo = $1', [codigo]);
+    'SELECT codigo, descripcion, tipo, valor, max_usos, usos, activo, inicia_en, vence_en FROM tienda_promociones WHERE codigo = $1', [codigo]);
   if (!promo || !promo.activo) throw new HttpError(404, 'El código promocional no existe o está desactivado.');
   if (promo.inicia_en && new Date(promo.inicia_en).getTime() > Date.now()) {
     throw new HttpError(400, `Esta promoción todavía no está vigente. Comienza el ${new Date(promo.inicia_en).toLocaleString('es-BO')}.`);
@@ -520,9 +534,6 @@ app.get('/api/promociones/validar', rateLimit({ max: 30, ventanaMs: 15 * 60 * 10
   if ((promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) ||
       (promo.max_usos != null && Number(promo.usos) >= Number(promo.max_usos))) {
     throw new HttpError(404, 'Esta promoción venció o alcanzó su límite de usos.');
-  }
-  if (subtotal < Number(promo.minimo || 0)) {
-    throw new HttpError(400, `Esta promoción requiere una compra mínima de Bs. ${Number(promo.minimo).toFixed(2)}.`);
   }
   const descuento = descuentoPromocion(promo, subtotal);
   if (descuento <= 0) throw new HttpError(400, 'El código promocional no se puede aplicar a este pedido.');
@@ -534,7 +545,7 @@ app.get('/api/promociones', rateLimit({ max: 60, ventanaMs: 15 * 60 * 1000 }), a
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
   const { rows } = await pool.query(`
-    SELECT codigo, descripcion, tipo, valor, minimo, inicia_en, vence_en,
+    SELECT codigo, descripcion, tipo, valor, inicia_en, vence_en,
            (inicia_en IS NULL OR inicia_en <= now()) AS disponible,
            CASE WHEN max_usos IS NULL THEN NULL ELSE GREATEST(0, max_usos - usos) END AS usos_restantes
       FROM tienda_promociones
@@ -571,8 +582,8 @@ app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje
   if (!tel) throw new HttpError(400, 'Ingresa un celular válido de 8 dígitos (ej: 71234567).');
   const nota = str(cli.nota, 500);
   const referencia = str(b.referencia_pago, 120);
-  const promoCodigo = str(b.promo_codigo, 40).toUpperCase();
-  if (promoCodigo && !/^[A-Z0-9_-]{3,40}$/.test(promoCodigo)) throw new HttpError(400, 'Código promocional inválido.');
+  const promoCodigo = normalizarCodigoPromocion(b.promo_codigo);
+  if (promoCodigo && !/^[A-Z0-9_-]{1,40}$/.test(promoCodigo)) throw new HttpError(400, 'Código promocional inválido.');
   const puntosSolicitados = r2(Math.max(0, Number(b.puntos) || 0));
   if (puntosSolicitados > 0 && !req.usuario) throw new HttpError(401, 'Inicia sesión para usar tus puntos.');
 
@@ -955,17 +966,17 @@ app.get('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
 }));
 app.post('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
   const b = req.body || {};
-  const codigo = str(b.codigo, 40).toUpperCase();
+  const codigo = normalizarCodigoPromocion(b.codigo);
   const descripcion = str(b.descripcion, 250);
   const tipo = String(b.tipo || '');
   const valor = Number(b.valor);
-  const minimo = Number(b.minimo || 0);
+  const minimo = 0; // Sin compra mínima ni condiciones basadas en el subtotal.
   const maxUsos = b.max_usos === '' || b.max_usos == null ? null : Number(b.max_usos);
   const inicia = b.inicia_en ? new Date(b.inicia_en) : null;
   const vence = b.vence_en ? new Date(b.vence_en) : null;
-  if (!/^[A-Z0-9_-]{3,40}$/.test(codigo)) throw new HttpError(400, 'El código debe tener entre 3 y 40 caracteres (A-Z, 0-9, guion o guion bajo).');
+  if (!/^[A-Z0-9_-]{1,40}$/.test(codigo)) throw new HttpError(400, 'Escribe el código promocional que quieras (hasta 40 caracteres).');
   if (!['porcentaje','monto'].includes(tipo) || !Number.isFinite(valor) || valor <= 0 || (tipo === 'porcentaje' && valor > 100)) throw new HttpError(400, 'Tipo o valor de promoción inválido.');
-  if (!Number.isFinite(minimo) || minimo < 0 || (maxUsos !== null && (!Number.isInteger(maxUsos) || maxUsos < 1))) throw new HttpError(400, 'Compra mínima o límite de usos inválido.');
+  if (maxUsos !== null && (!Number.isInteger(maxUsos) || maxUsos < 1)) throw new HttpError(400, 'El límite de usos debe ser un número entero mayor que cero.');
   if (inicia && !Number.isFinite(inicia.getTime())) throw new HttpError(400, 'Fecha de inicio inválida.');
   if (vence && !Number.isFinite(vence.getTime())) throw new HttpError(400, 'Fecha de vencimiento inválida.');
   if (inicia && vence && vence <= inicia) throw new HttpError(400, 'La fecha de vencimiento debe ser posterior a la fecha de inicio.');
