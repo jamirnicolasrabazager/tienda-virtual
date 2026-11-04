@@ -216,6 +216,10 @@ async function inicializarBD() {
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS imagenes JSONB NOT NULL DEFAULT '[]'::jsonb`);
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS stock_deducido BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS stock_reintegrado BOOLEAN NOT NULL DEFAULT false`);
+  // Permite excluir un pedido de las estadísticas sin borrarlo de inmediato,
+  // y retirarlo después del historial administrativo conservando el registro interno.
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS excluido_finanzas BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS oculto_registro BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_promociones (
       id SERIAL PRIMARY KEY,
@@ -895,8 +899,34 @@ app.get('/api/admin/pedidos', requiereAdmin, ah(async (req, res) => {
     SELECT p.*, pf.email AS usuario_email
       FROM tienda_pedidos p
       LEFT JOIN tienda_perfiles pf ON pf.user_id = p.user_id
+     WHERE p.oculto_registro = false
      ORDER BY p.id DESC LIMIT 500`);
   res.json(rows);
+}));
+
+// Excluir el pedido de todas las cifras financieras sin eliminar su historial.
+app.post('/api/admin/pedidos/:id/excluir-finanzas', requiereAdmin, ah(async (req, res) => {
+  const { rowCount } = await pool.query(
+    'UPDATE tienda_pedidos SET excluido_finanzas = true WHERE id = $1',
+    [idValido(req.params.id)]
+  );
+  if (!rowCount) throw new HttpError(404, 'Pedido no encontrado.');
+  res.json({ completado: true, excluido_finanzas: true });
+}));
+
+// Retirar del listado administrativo un pedido previamente excluido de finanzas.
+// Se conserva el registro interno y no se modifican inventario ni puntos del cliente.
+app.post('/api/admin/pedidos/:id/quitar-registro', requiereAdmin, ah(async (req, res) => {
+  const id = idValido(req.params.id);
+  const { rows: [pedido] } = await pool.query(
+    'SELECT excluido_finanzas, oculto_registro FROM tienda_pedidos WHERE id = $1', [id]
+  );
+  if (!pedido) throw new HttpError(404, 'Pedido no encontrado.');
+  if (!pedido.excluido_finanzas) throw new HttpError(409, 'Primero debes borrar el pedido de las estadísticas financieras.');
+  if (!pedido.oculto_registro) {
+    await pool.query('UPDATE tienda_pedidos SET oculto_registro = true WHERE id = $1', [id]);
+  }
+  res.json({ completado: true, oculto_registro: true });
 }));
 
 app.get('/api/admin/puntos', requiereAdmin, ah(async (req, res) => {
@@ -920,6 +950,7 @@ app.get('/api/admin/estadisticas', requiereAdmin, ah(async (req, res) => {
         EXISTS (SELECT 1 FROM jsonb_array_elements(p.items) AS item
                  WHERE NOT (item ? 'costo_total') OR item->>'costo_total' IS NULL) AS costo_incompleto
       FROM tienda_pedidos p
+      WHERE p.excluido_finanzas = false
     )
     SELECT COUNT(*)::int AS pedidos,
       COUNT(*) FILTER (WHERE estado = 'pendiente')::int AS pendientes,
@@ -941,7 +972,9 @@ app.get('/api/admin/estadisticas', requiereAdmin, ah(async (req, res) => {
         EXISTS (SELECT 1 FROM jsonb_array_elements(p.items) AS item
                  WHERE NOT (item ? 'costo_total') OR item->>'costo_total' IS NULL) AS costo_incompleto
       FROM tienda_pedidos p
-      WHERE p.estado IN ('pagado','entregado') AND p.creado_en::date >= CURRENT_DATE - INTERVAL '6 days'
+      WHERE p.excluido_finanzas = false
+        AND p.estado IN ('pagado','entregado')
+        AND p.creado_en::date >= CURRENT_DATE - INTERVAL '6 days'
     )
     SELECT to_char(dia, 'YYYY-MM-DD') AS fecha,
       COALESCE(SUM(p.total), 0) AS ingresos,

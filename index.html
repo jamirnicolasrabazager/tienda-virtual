@@ -2121,9 +2121,14 @@
           destino.innerHTML = tabla(['Código', 'Fecha', 'Cliente', 'Cuenta', 'Detalle', 'Subtotal', 'Promo', 'Puntos usados', 'Total', 'Cashback', 'Ref. pago', 'Estado', 'Acciones'],
             rows.map(r => {
               const det = (r.items || []).map(i => `${i.cantidad}x ${i.nombre}${variante(i) ? ' (' + variante(i) + ')' : ''}`).join('; ');
-              const btns = (acciones[r.estado] || []).map(e => `<button class="btn ${e === 'cancelado' ? 'btn-danger' : ''}" onclick="cambiarEstadoPedido(${r.id}, '${e}')">${etiqueta[e]}</button>`).join('');
+              const excluidoFinanzas = !!r.excluido_finanzas;
+              const btns = excluidoFinanzas ? '' : (acciones[r.estado] || []).map(e => `<button class="btn ${e === 'cancelado' ? 'btn-danger' : ''}" onclick="cambiarEstadoPedido(${r.id}, '${e}')">${etiqueta[e]}</button>`).join('');
               const editar = `<button class="btn btn-secondary" onclick="editarPedidoAdmin(${r.id})">Editar / imágenes</button>`;
-              return `<tr><td><strong>${esc(r.codigo)}</strong></td><td>${fecha(r.creado_en)}</td><td>${esc(r.cliente_nombre)}<br>${esc(r.cliente_telefono)}${r.cliente_nota ? '<br><em>' + esc(r.cliente_nota) + '</em>' : ''}</td><td>${esc(r.usuario_email || 'Invitado')}</td><td>${esc(det)}${(r.imagenes || []).length ? `<br><small>${r.imagenes.length} imagen(es) adjunta(s)</small>` : ''}</td><td>${bs(r.subtotal)}</td><td>${r.promo_codigo ? `${esc(r.promo_codigo)} (-${bs(r.descuento_promo)})` : '—'}</td><td>${bs(r.puntos_usados)}</td><td><strong>${bs(r.total)}</strong></td><td>${bs(r.cashback)}${r.cashback_acreditado ? ' ✔' : ''}</td><td>${esc(r.referencia_pago || '—')}</td><td><span class="badge ${esc(r.estado)}">${esc(etiquetaEstadoPedido(r.estado))}</span></td><td><div class="admin-order-actions">${btns}${editar}</div></td></tr>`;
+              const accionRegistro = excluidoFinanzas
+                ? `<button class="btn btn-secondary" onclick="quitarPedidoDeRegistro(${r.id})">Quitar de registro</button>`
+                : `<button class="btn btn-danger" onclick="excluirPedidoDeFinanzas(${r.id})">Borrar pedido</button>`;
+              const etiquetaFinanzas = excluidoFinanzas ? '<br><span class="badge cancelado">Excluido de finanzas</span>' : '';
+              return `<tr><td><strong>${esc(r.codigo)}</strong></td><td>${fecha(r.creado_en)}</td><td>${esc(r.cliente_nombre)}<br>${esc(r.cliente_telefono)}${r.cliente_nota ? '<br><em>' + esc(r.cliente_nota) + '</em>' : ''}</td><td>${esc(r.usuario_email || 'Invitado')}</td><td>${esc(det)}${(r.imagenes || []).length ? `<br><small>${r.imagenes.length} imagen(es) adjunta(s)</small>` : ''}</td><td>${bs(r.subtotal)}</td><td>${r.promo_codigo ? `${esc(r.promo_codigo)} (-${bs(r.descuento_promo)})` : '—'}</td><td>${bs(r.puntos_usados)}</td><td><strong>${bs(r.total)}</strong></td><td>${bs(r.cashback)}${r.cashback_acreditado ? ' ✔' : ''}</td><td>${esc(r.referencia_pago || '—')}</td><td><span class="badge ${esc(r.estado)}">${esc(etiquetaEstadoPedido(r.estado))}</span>${etiquetaFinanzas}</td><td><div class="admin-order-actions">${btns}${editar}${accionRegistro}</div></td></tr>`;
             }));
         } else if (tab === 'puntos') {
           const rows = await apiFetch('/api/admin/puntos');
@@ -2140,6 +2145,22 @@
       try {
         await apiFetch('/api/admin/pedidos/' + id, { method: 'PATCH', body: { estado } });
         await cargarTabAdmin('compras');
+      } catch (e) { alert(e.message); }
+    }
+    async function excluirPedidoDeFinanzas(id) {
+      if (!confirm('¿Borrar este pedido de las estadísticas? Dejará de contar en los gráficos, ingresos y ganancias brutas/netas, pero seguirá visible en el historial hasta que elijas “Quitar de registro”. No se alterarán el stock ni los puntos del cliente.')) return;
+      try {
+        await apiFetch(`/api/admin/pedidos/${id}/excluir-finanzas`, { method: 'POST' });
+        await cargarTabAdmin('compras');
+        toast('Pedido excluido de las estadísticas financieras.');
+      } catch (e) { alert(e.message); }
+    }
+    async function quitarPedidoDeRegistro(id) {
+      if (!confirm('¿Quitar este pedido del historial administrativo? Ya está excluido de las estadísticas. Se conservará internamente y no se modificará el stock ni los puntos del cliente.')) return;
+      try {
+        await apiFetch(`/api/admin/pedidos/${id}/quitar-registro`, { method: 'POST' });
+        await cargarTabAdmin('compras');
+        toast('Pedido retirado del historial administrativo.');
       } catch (e) { alert(e.message); }
     }
 

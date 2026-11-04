@@ -116,3 +116,10 @@ La migración v2.2 añade `tienda_productos.stock_controlado`, la tabla `tienda_
 
 
 Las comprobaciones locales (`npm run check`) validan sintaxis del backend y frontend, IDs estáticos duplicados y referencias literales. La prueba real de flujos de compra, permisos y persistencia requiere las variables de entorno y la base PostgreSQL/Supabase del despliegue.
+
+
+## Exclusión y retiro de pedidos (v2.3.2)
+
+- En **Historial de compras**, el botón **Borrar pedido** excluye el pedido de los resúmenes financieros, ingresos y gráficos de ganancias brutas/netas. El pedido sigue visible en el historial administrativo con la marca **Excluido de finanzas**.
+- Después aparece **Quitar de registro**. Al utilizarlo, el pedido deja de mostrarse en el historial administrativo. El registro se conserva internamente para mantener la trazabilidad; tampoco se alteran el inventario ni los puntos/cashback del cliente.
+- La API añade automáticamente las columnas `tienda_pedidos.excluido_finanzas` y `tienda_pedidos.oculto_registro` si todavía no existen. Los pedidos actuales quedan incluidos en estadísticas por defecto.

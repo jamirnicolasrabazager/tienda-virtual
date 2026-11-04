@@ -1,7 +1,7 @@
 {
   "name": "productos-en-linea",
-  "version": "2.3.1",
-  "description": "Tienda virtual JG con inventario administrativo, costos privados por variante, módulo financiero independiente y promociones públicas actualizadas.",
+  "version": "2.3.2",
+  "description": "Tienda virtual JG con inventario, finanzas, promociones y gestión de exclusión/archivo de pedidos.",
   "main": "api/index.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env api/index.js",
