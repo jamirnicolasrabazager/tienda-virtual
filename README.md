@@ -96,3 +96,15 @@ Ejecuta `npm run check` para verificar sintaxis de la API y del frontend, IDs du
 - El texto para WhatsApp ahora incluye un comprobante organizado con código, fecha, variantes, importes, descuentos, total y datos del cliente.
 
 La migración v2.2 añade `tienda_productos.stock_controlado`, la tabla `tienda_stock_variantes`, los indicadores `tienda_pedidos.stock_deducido` / `stock_reintegrado` y `tienda_promociones.publica`. Se ejecuta automáticamente al iniciar la API y no elimina productos, pedidos, clientes, promociones ni configuraciones existentes.
+
+
+## Separación de inventario y finanzas (v2.3)
+
+- El panel administrativo dispone de una pestaña dedicada **Stock e inventario** y otra pestaña independiente **Ganancias y finanzas**. El historial de compras queda enfocado exclusivamente en la revisión y gestión de pedidos.
+- La pantalla de inventario lista todos los productos del catálogo con su imagen, precio de venta, variantes, control de stock, unidades disponibles y estado de configuración de costos. Desde cada fila se abre el editor de cantidades y costos por combinación de talla/color.
+- El costo de adquisición permanece exclusivamente en rutas administrativas protegidas; no se incluye en el catálogo público ni en las respuestas de promociones o pedidos que reciben los clientes. El costo se gestiona por variante para que los reportes reflejen diferencias reales entre tallas o colores.
+- El módulo financiero independiente muestra ingresos cobrados, costo histórico de productos, ganancia bruta, cashback reconocido y ganancia neta, además del gráfico de los últimos siete días.
+- La pestaña pública de promociones se actualiza al abrirla y cuenta con un botón manual de actualización. Después de crear, activar, desactivar, hacer pública/privada o eliminar una promoción en administración, la vista pública se refresca automáticamente si está abierta. Las solicitudes a este endpoint se envían sin caché.
+- El endpoint administrativo de inventario devuelve nombre, imagen y precio de los productos junto con las variantes y costos; continúa protegido mediante `requiereAdmin`. El endpoint público `/api/productos` no expone costos de adquisición.
+
+Las comprobaciones locales (`npm run check`) validan sintaxis del backend y frontend, IDs estáticos duplicados y referencias literales. La prueba real de flujos de compra, permisos y persistencia requiere las variables de entorno y la base PostgreSQL/Supabase del despliegue.

@@ -531,6 +531,8 @@ app.get('/api/promociones/validar', rateLimit({ max: 30, ventanaMs: 15 * 60 * 10
 
 // Promociones visibles para clientes: solo activas, dentro de sus fechas y con cupo disponible.
 app.get('/api/promociones', rateLimit({ max: 60, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
   const { rows } = await pool.query(`
     SELECT codigo, descripcion, tipo, valor, minimo, inicia_en, vence_en,
            (inicia_en IS NULL OR inicia_en <= now()) AS disponible,
@@ -806,7 +808,7 @@ app.post('/api/config', requiereAdmin, ah(async (req, res) => {
 // ---------- Inventario por producto, talla y color ----------
 app.get('/api/admin/stock', requiereAdmin, ah(async (req, res) => {
   const { rows } = await pool.query(`
-    SELECT p.id, p.nombre, p.tallas, p.colores, p.stock_controlado,
+    SELECT p.id, p.nombre, p.precio, p.tallas, p.colores, p.imagen_url, p.imagenes, p.stock_controlado,
       COALESCE(json_agg(json_build_object(
         'talla', s.talla, 'color', s.color, 'cantidad', s.cantidad,
         'costo_unitario', s.costo_unitario, 'actualizado_en', s.actualizado_en
