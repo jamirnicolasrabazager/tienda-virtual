@@ -292,6 +292,37 @@
     .badge.pendiente { color: var(--warning); background: var(--warning-soft); }
     .badge.cancelado { color: var(--danger); background: var(--danger-soft); }
 
+    /* ----- Mejoras de catálogo, seguimiento, promociones y analítica ----- */
+    .catalog-tools { display:grid; grid-template-columns: minmax(0, 1fr) 190px; gap:12px; max-width:780px; margin:0 auto 18px; }
+    .catalog-tools .search-bar { margin:0; max-width:none; }
+    .tracking-box { max-width:780px; margin:0 auto 38px; padding:20px; background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow-sm); }
+    .tracking-form { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+    .tracking-result { margin-top:14px; }
+    .tracking-result:empty { display:none; }
+    .promo-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .promo-form-grid .form-control { margin:0; }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:14px 0; }
+    .stat-card { padding:16px; border:1px solid var(--border); border-radius:14px; background:#fff; }
+    .stat-card span { display:block; color:var(--muted); font-size:12px; }
+    .stat-card strong { display:block; margin-top:5px; font-size:22px; color:var(--ink); }
+    .sales-chart { display:flex; align-items:flex-end; gap:10px; min-height:145px; padding:15px; border:1px solid var(--border); border-radius:14px; background:#fff; }
+    .sales-day { flex:1; min-width:0; text-align:center; font-size:11px; color:var(--muted); }
+    .sales-bar-wrap { display:flex; align-items:flex-end; justify-content:center; height:100px; margin-bottom:7px; }
+    .sales-bar { width:min(34px,75%); min-height:3px; border-radius:7px 7px 2px 2px; background:linear-gradient(180deg,#8051c8,var(--primary)); }
+    .coupon-row { display:grid; grid-template-columns:1fr auto; gap:8px; margin:14px 0; }
+    .coupon-message { font-size:12px; margin-top:5px; }
+    .coupon-message.ok { color:var(--success); }
+    .coupon-message.error { color:var(--danger); }
+    .promo-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    @media (max-width:860px) { .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:560px) {
+      .catalog-tools { grid-template-columns:1fr; }
+      .tracking-form { grid-template-columns:1fr; }
+      .promo-form-grid { grid-template-columns:1fr; }
+      .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .sales-chart { gap:4px; padding:10px 5px; }
+    }
+
     /* ----- Adaptación a móviles ----- */
     @media (max-width: 860px) {
       header { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
@@ -323,10 +354,28 @@
     <!-- VISTA INTERFAZ PÚBLICA (CLIENTES) -->
     <div id="vista-publica" class="view-section active">
       <h2 id="txt-bienvenida" style="text-align: center; margin-bottom: 25px;">Explora Nuestro Catálogo</h2>
-      <div class="search-bar">
-        <input type="text" id="buscador-input" placeholder="¿Qué estás buscando hoy?..." oninput="filtrarCatalogo()">
+      <div class="catalog-tools">
+        <div class="search-bar">
+          <input type="search" id="buscador-input" placeholder="¿Qué estás buscando hoy?..." oninput="filtrarCatalogo()" aria-label="Buscar productos">
+        </div>
+        <select id="orden-catalogo" class="form-control" aria-label="Ordenar productos" onchange="filtrarCatalogo()">
+          <option value="recientes">Más recientes</option>
+          <option value="precio-asc">Precio: menor a mayor</option>
+          <option value="precio-desc">Precio: mayor a menor</option>
+          <option value="nombre">Nombre: A-Z</option>
+        </select>
       </div>
       <div class="grid" id="catalogo-grid-container"></div>
+      <section class="tracking-box" aria-labelledby="titulo-seguimiento">
+        <h3 id="titulo-seguimiento" style="margin:0 0 5px;">📦 Consulta el estado de tu pedido</h3>
+        <p style="margin:0 0 14px;color:var(--muted);font-size:13px;">Ingresa el código que recibiste y los últimos 4 dígitos del celular usado en la compra.</p>
+        <form class="tracking-form" onsubmit="consultarSeguimiento(event)">
+          <div><label for="track-codigo" style="font-size:12px;font-weight:700;">Código de pedido</label><input id="track-codigo" class="form-control" placeholder="JG-123456" maxlength="9" required></div>
+          <div><label for="track-telefono" style="font-size:12px;font-weight:700;">Últimos 4 dígitos del celular</label><input id="track-telefono" class="form-control" inputmode="numeric" maxlength="4" placeholder="4567" required></div>
+          <button class="btn" type="submit" id="btn-seguimiento">Consultar</button>
+        </form>
+        <div id="tracking-result" class="tracking-result" aria-live="polite"></div>
+      </section>
     </div>
 
     <!-- VISTA INTERFAZ ADMINISTRADOR (solo se muestra con sesión de administrador verificada por el servidor) -->
@@ -341,6 +390,7 @@
         <button class="tab-btn" data-tab="perfiles" onclick="cambiarTabAdmin('perfiles')">Perfiles de usuarios</button>
         <button class="tab-btn" data-tab="compras" onclick="cambiarTabAdmin('compras')">Historial de compras</button>
         <button class="tab-btn" data-tab="puntos" onclick="cambiarTabAdmin('puntos')">Puntos de cashback</button>
+        <button class="tab-btn" data-tab="promociones" onclick="cambiarTabAdmin('promociones')">Promociones</button>
       </div>
 
       <!-- PESTAÑA: CATÁLOGO Y AJUSTES (bloques originales) -->
@@ -440,6 +490,26 @@
           <div id="contenido-puntos" class="tabla-wrap"></div>
         </div>
       </div>
+      <div class="tab-panel" id="tab-promociones">
+        <div class="admin-box">
+          <h3>Crear código promocional</h3>
+          <p style="color:var(--muted);font-size:13px;margin-top:-6px;">Los descuentos se verifican nuevamente en el servidor al confirmar cada pedido.</p>
+          <div class="promo-form-grid">
+            <div><label for="promo-codigo">Código</label><input id="promo-codigo" class="form-control" maxlength="40" placeholder="BIENVENIDO10"></div>
+            <div><label for="promo-descripcion">Descripción</label><input id="promo-descripcion" class="form-control" maxlength="250" placeholder="Descuento de bienvenida"></div>
+            <div><label for="promo-tipo">Tipo de descuento</label><select id="promo-tipo" class="form-control"><option value="porcentaje">Porcentaje (%)</option><option value="monto">Monto fijo (Bs.)</option></select></div>
+            <div><label for="promo-valor">Valor</label><input id="promo-valor" class="form-control" type="number" min="0.01" step="0.01" placeholder="10"></div>
+            <div><label for="promo-minimo">Compra mínima (Bs.)</label><input id="promo-minimo" class="form-control" type="number" min="0" step="0.01" value="0"></div>
+            <div><label for="promo-max-usos">Límite de usos (opcional)</label><input id="promo-max-usos" class="form-control" type="number" min="1" step="1" placeholder="Sin límite"></div>
+            <div><label for="promo-vence">Fecha de vencimiento (opcional)</label><input id="promo-vence" class="form-control" type="datetime-local"></div>
+          </div>
+          <button class="btn" style="margin-top:15px;" onclick="crearPromocion()">Crear promoción</button>
+        </div>
+        <div class="admin-box" style="margin-top:22px;">
+          <h3>Promociones registradas</h3>
+          <div id="contenido-promociones" class="tabla-wrap"></div>
+        </div>
+      </div>
     </div>
 
   </div> <!-- Cierre del div .container principal -->
@@ -512,7 +582,13 @@
           <div id="puntos-invitado" class="caja-info" style="display:none;">
             ¿Tienes cuenta? <a href="#" onclick="abrirAuth(false); return false;" style="color:var(--primary); font-weight:bold;">Inicia sesión</a> para ganar cashback y usar tus puntos como descuento.
           </div>
+          <div class="coupon-row">
+            <input type="text" id="cupon-codigo" class="form-control" style="margin:0;" maxlength="40" placeholder="Código promocional">
+            <button class="btn btn-secondary" type="button" id="btn-cupon" style="padding:9px 13px;" onclick="aplicarCupon()">Aplicar</button>
+          </div>
+          <div id="cupon-mensaje" class="coupon-message" aria-live="polite"></div>
           <div class="resumen-row"><span>Subtotal</span><span id="res-subtotal">Bs. 0.00</span></div>
+          <div class="resumen-row" id="res-cupon-row" style="display:none;"><span>Descuento promocional</span><span id="res-cupon">- Bs. 0.00</span></div>
           <div class="resumen-row"><span>Descuento por puntos</span><span id="res-descuento">- Bs. 0.00</span></div>
           <div class="resumen-total resumen-row"><span>Total</span><span id="res-total">Bs. 0.00</span></div>
           <div id="res-cashback" style="color:var(--success); font-size:13px; margin-top:6px;"></div>
@@ -620,6 +696,10 @@
     let colorSeleccionada = null;
     let sesion = leerLS('jg_sesion');            // { access_token, refresh_token, user, es_admin, perfil }
     let carrito = leerLS('jg_carrito') || [];    // [{ id, talla, color, cantidad }]
+    if (!Array.isArray(carrito)) carrito = [];
+    carrito = carrito.filter(i => i && Number.isInteger(Number(i.id)) && Number(i.id) > 0)
+      .map(i => ({ id: Number(i.id), talla: String(i.talla || '').slice(0, 50), color: String(i.color || '').slice(0, 50), cantidad: Math.max(1, Math.min(99, parseInt(i.cantidad, 10) || 1)) }));
+    let cuponAplicado = null;
     let vistaActual = 'publica';
     let modoAuth = 'login';
     let authParaAdmin = false;
@@ -644,13 +724,16 @@
       opts = opts || {};
       const hacer = () => fetch(path, {
         method: opts.method || 'GET',
-        headers: Object.assign({}, opts.body ? { 'Content-Type': 'application/json' } : {}, (sesion && !opts.noAuth) ? { 'Authorization': 'Bearer ' + sesion.access_token } : {}),
+        headers: Object.assign({ 'Accept': 'application/json' }, opts.body ? { 'Content-Type': 'application/json' } : {}, (sesion && !opts.noAuth) ? { 'Authorization': 'Bearer ' + sesion.access_token } : {}),
         body: opts.body ? JSON.stringify(opts.body) : undefined
       });
-      let r = await hacer();
+      let r;
+      try { r = await hacer(); }
+      catch (_) { throw new Error('No se pudo conectar con la tienda. Comprueba tu conexión e inténtalo de nuevo.'); }
       if (r.status === 401 && sesion && !opts.noAuth && await refrescarSesion()) r = await hacer();
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) { const e = new Error(data.error || 'Error de servidor'); e.status = r.status; throw e; }
+      const tipo = (r.headers.get('content-type') || '').toLowerCase();
+      const data = tipo.includes('application/json') ? await r.json().catch(() => ({})) : {};
+      if (!r.ok) { const e = new Error(data.error || `Error de servidor (${r.status}).`); e.status = r.status; throw e; }
       return data;
     }
 
@@ -658,6 +741,7 @@
     async function cargarAplicacionCompleta() {
       try {
         const rConfig = await fetch('/api/config');
+        if (!rConfig.ok) throw new Error('No se pudo cargar la configuración de la tienda.');
         cacheConfig = await rConfig.json();
 
         const metaTitulo = cacheConfig.cfg_meta_titulo || "Catálogo Profesional";
@@ -680,13 +764,15 @@
         mostrarVistaPreviaQr();
 
         const rProd = await fetch('/api/productos');
+        if (!rProd.ok) throw new Error('No se pudo cargar el catálogo.');
         cacheProductos = await rProd.json();
         renderizarCatalogoPublico(cacheProductos);
         renderizarTablaGestionAdmin(cacheProductos);
         sincronizarCarrito();
         renderCarrito();
       } catch (err) {
-        console.error("Error cargando la configuración inicial:", err);
+        console.error('Error cargando la tienda:', err);
+        toast(err.message || 'No se pudo cargar la tienda.');
       }
     }
 
@@ -701,7 +787,11 @@
       lista.forEach(p => {
         const item = document.createElement('div');
         item.className = 'product-card';
+        item.tabIndex = 0;
+        item.setAttribute('role', 'button');
+        item.setAttribute('aria-label', `Ver ${p.nombre || 'producto'}`);
         item.onclick = () => abrirDetalleFichaProducto(p);
+        item.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirDetalleFichaProducto(p); } };
         const pct = num(p.cashback_pct);
         item.innerHTML = `
           <img src="${esc(urlImg(p.imagen_url))}" alt="Producto">
@@ -717,11 +807,16 @@
     }
 
     function filtrarCatalogo() {
-      const text = $('buscador-input').value.toLowerCase();
+      const text = $('buscador-input').value.trim().toLocaleLowerCase('es');
       const filtrados = cacheProductos.filter(p =>
-        (p.nombre || '').toLowerCase().includes(text) ||
-        (p.descripcion || '').toLowerCase().includes(text)
+        String(p.nombre || '').toLocaleLowerCase('es').includes(text) ||
+        String(p.descripcion || '').toLocaleLowerCase('es').includes(text)
       );
+      const orden = $('orden-catalogo').value;
+      if (orden === 'precio-asc') filtrados.sort((a, b) => num(a.precio) - num(b.precio));
+      else if (orden === 'precio-desc') filtrados.sort((a, b) => num(b.precio) - num(a.precio));
+      else if (orden === 'nombre') filtrados.sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es'));
+      else filtrados.sort((a, b) => num(b.id) - num(a.id));
       renderizarCatalogoPublico(filtrados);
     }
 
@@ -857,7 +952,14 @@
       carrito = carrito.filter(i => prodPorId(i.id));
       guardarCarrito();
     }
+    function invalidarCuponPorCambio() {
+      if (!cuponAplicado) return;
+      cuponAplicado = null;
+      $('cupon-mensaje').className = 'coupon-message';
+      $('cupon-mensaje').innerText = 'El carrito cambió. Vuelve a aplicar el código promocional para recalcular el descuento.';
+    }
     function agregarAlCarrito(id, talla, color, cantidad) {
+      invalidarCuponPorCambio();
       const ex = carrito.find(i => i.id === id && i.talla === talla && i.color === color);
       if (ex) ex.cantidad = Math.min(99, ex.cantidad + cantidad);
       else carrito.push({ id, talla, color, cantidad });
@@ -866,10 +968,12 @@
     }
     function cambiarCantidad(idx, delta) {
       const it = carrito[idx]; if (!it) return;
+      invalidarCuponPorCambio();
       it.cantidad = Math.max(1, Math.min(99, it.cantidad + delta));
       guardarCarrito(); renderCarrito();
     }
     function quitarDelCarrito(idx) {
+      invalidarCuponPorCambio();
       carrito.splice(idx, 1);
       guardarCarrito(); renderCarrito();
     }
@@ -880,15 +984,52 @@
     function calcularTotales() {
       const lineas = carrito.map(i => ({ i, p: prodPorId(i.id) })).filter(x => x.p);
       const subtotal = r2(lineas.reduce((s, l) => s + num(l.p.precio) * l.i.cantidad, 0));
+      let promoDescuento = 0;
+      if (cuponAplicado) {
+        if (r2(cuponAplicado.subtotal) === subtotal) promoDescuento = Math.min(subtotal, num(cuponAplicado.descuento));
+        else {
+          cuponAplicado = null;
+          $('cupon-mensaje').className = 'coupon-message';
+          $('cupon-mensaje').innerText = 'El subtotal cambió. Vuelve a aplicar el código promocional.';
+        }
+      }
       const saldo = sesion && sesion.perfil ? num(sesion.perfil.puntos) : 0;
-      const maxPts = Math.min(saldo, subtotal);
+      const maxPts = Math.min(saldo, Math.max(0, subtotal - promoDescuento));
       const pedido = parseFloat($('carrito-puntos').value) || 0;
       const puntos = r2(Math.max(0, Math.min(pedido, maxPts)));
-      const total = r2(subtotal - puntos);
+      const total = r2(Math.max(0, subtotal - promoDescuento - puntos));
       const cbBruto = lineas.reduce((s, l) => s + num(l.p.precio) * l.i.cantidad * num(l.p.cashback_pct) / 100, 0);
       const cashback = (sesion && subtotal > 0) ? Math.floor(cbBruto * (total / subtotal) * 100 + 1e-9) / 100 : 0;
-      return { lineas, subtotal, saldo, maxPts, puntos, total, cashback };
+      return { lineas, subtotal, saldo, maxPts, puntos, promoDescuento, total, cashback };
     }
+    async function aplicarCupon() {
+      const codigo = $('cupon-codigo').value.trim().toUpperCase();
+      if (!codigo) { quitarCupon(); return; }
+      const btn = $('btn-cupon');
+      btn.disabled = true; btn.innerText = 'Validando...';
+      try {
+        const t = calcularTotales();
+        const data = await apiFetch(`/api/promociones/validar?codigo=${encodeURIComponent(codigo)}&subtotal=${encodeURIComponent(t.subtotal)}`);
+        cuponAplicado = { codigo: data.codigo, descuento: Number(data.descuento), subtotal: t.subtotal, descripcion: data.descripcion || '' };
+        $('cupon-codigo').value = data.codigo;
+        $('cupon-mensaje').className = 'coupon-message ok';
+        $('cupon-mensaje').innerText = `${data.descripcion || 'Promoción aplicada'}: ahorras ${bs(data.descuento)}.`;
+        actualizarResumen();
+      } catch (e) {
+        cuponAplicado = null;
+        $('cupon-mensaje').className = 'coupon-message error';
+        $('cupon-mensaje').innerText = e.message;
+        actualizarResumen();
+      } finally { btn.disabled = false; btn.innerText = 'Aplicar'; }
+    }
+    function quitarCupon() {
+      cuponAplicado = null;
+      $('cupon-codigo').value = '';
+      $('cupon-mensaje').className = 'coupon-message';
+      $('cupon-mensaje').innerText = '';
+      actualizarResumen();
+    }
+
     function usarMaximoPuntos() {
       const t = calcularTotales();
       $('carrito-puntos').value = t.maxPts.toFixed(2);
@@ -898,6 +1039,8 @@
       const t = calcularTotales();
       $('res-subtotal').innerText = bs(t.subtotal);
       $('res-descuento').innerText = '- ' + bs(t.puntos);
+      $('res-cupon-row').style.display = t.promoDescuento > 0 ? 'flex' : 'none';
+      $('res-cupon').innerText = '- ' + bs(t.promoDescuento);
       $('res-total').innerText = bs(t.total);
       $('co-total').innerText = bs(t.total);
       $('res-cashback').innerText = (sesion && t.cashback > 0)
@@ -1035,6 +1178,7 @@
       });
       L.push('----------------------------------');
       L.push(`Subtotal: ${bs(ped.subtotal)}`);
+      if (ped.descuento_promo > 0) L.push(`Promoción ${ped.promo_codigo}: -${bs(ped.descuento_promo)}`);
       if (ped.puntos_usados > 0) L.push(`Descuento por puntos: -${bs(ped.puntos_usados)}`);
       L.push(`TOTAL A PAGAR: ${bs(ped.total)}`);
       return L.join('\n');
@@ -1064,11 +1208,13 @@
             items: carrito.map(i => ({ id: i.id, talla: i.talla, color: i.color, cantidad: i.cantidad })),
             cliente: { nombre, telefono: tel, nota: $('co-nota').value.trim() },
             puntos: t.puntos,
+            promo_codigo: cuponAplicado && r2(cuponAplicado.subtotal) === t.subtotal ? cuponAplicado.codigo : '',
             referencia_pago: $('co-ref').value.trim()
           }
         });
         carrito = []; guardarCarrito();
         $('carrito-puntos').value = 0; $('co-ref').value = ''; $('co-nota').value = '';
+        quitarCupon();
         renderCarrito(); cerrarCarrito();
         if (sesion) await actualizarPerfil();
         mostrarComprobante(d.pedido);
@@ -1098,6 +1244,26 @@
       if (fb) cont.innerHTML += `<a href="${esc(fb)}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:bold; text-decoration:none;">Facebook</a>`;
       if (ig) cont.innerHTML += `<a href="${esc(ig)}" target="_blank" rel="noopener" style="color:#e1306c; font-weight:bold; text-decoration:none;">Instagram</a>`;
       $('modal-comprobante').classList.add('active');
+    }
+
+    async function consultarSeguimiento(event) {
+      if (event) event.preventDefault();
+      const codigo = $('track-codigo').value.trim().toUpperCase();
+      const telefono = $('track-telefono').value.replace(/\D/g, '').slice(-4);
+      const destino = $('tracking-result');
+      if (!/^JG-\d{6}$/.test(codigo) || !/^\d{4}$/.test(telefono)) {
+        destino.innerHTML = '<p class="coupon-message error">Revisa el código (ej. JG-123456) y los últimos 4 dígitos del celular.</p>';
+        return;
+      }
+      const btn = $('btn-seguimiento'); btn.disabled = true; btn.innerText = 'Buscando...';
+      destino.innerHTML = '';
+      try {
+        const d = await apiFetch(`/api/pedidos/seguimiento?codigo=${encodeURIComponent(codigo)}&telefono=${encodeURIComponent(telefono)}`, { noAuth: true });
+        const estado = { pendiente: 'Pendiente de confirmación', pagado: 'Pago confirmado', entregado: 'Entregado', cancelado: 'Cancelado' }[d.estado] || d.estado;
+        const detalle = (d.items || []).map(i => `<li>${esc(i.cantidad)} × ${esc(i.nombre)}${i.talla ? ` · Talla ${esc(i.talla)}` : ''}${i.color ? ` · ${esc(i.color)}` : ''}</li>`).join('');
+        destino.innerHTML = `<div class="caja-info"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>Pedido ${esc(d.codigo)}</strong><span class="badge ${esc(d.estado)}">${esc(estado)}</span></div><p style="margin:8px 0;color:var(--muted);font-size:12px;">Registrado: ${esc(fecha(d.creado_en))}</p><ul style="margin:8px 0;padding-left:20px;">${detalle}</ul><div class="resumen-row"><span>Total</span><strong>${bs(d.total)}</strong></div></div>`;
+      } catch (e) { destino.innerHTML = `<p class="coupon-message error">${esc(e.message)}</p>`; }
+      finally { btn.disabled = false; btn.innerText = 'Consultar'; }
     }
 
     // ---------- Cuentas (Supabase Auth a través de la API) ----------
@@ -1376,25 +1542,75 @@
       if (!filas.length) return "<p style='color:var(--muted); padding:15px 0;'>Aún no hay registros.</p>";
       return `<table class="tabla"><thead><tr>${cabeceras.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${filas.join('')}</tbody></table>`;
     }
+    async function renderEstadisticasAdmin() {
+      const d = await apiFetch('/api/admin/estadisticas');
+      const max = Math.max(1, ...(d.ventas_por_dia || []).map(x => num(x.ingresos)));
+      const cards = [
+        ['Ingresos confirmados', bs(d.ingresos)], ['Pedidos pendientes', d.pendientes],
+        ['Pedidos confirmados', d.confirmados], ['Ticket promedio', bs(d.ticket_promedio)]
+      ];
+      const chart = (d.ventas_por_dia || []).map(x => {
+        const alto = Math.max(3, Math.round(num(x.ingresos) / max * 100));
+        const dia = new Date(`${x.fecha}T12:00:00`).toLocaleDateString('es-BO', { weekday: 'short' });
+        return `<div class="sales-day" title="${esc(x.fecha)}: ${bs(x.ingresos)}"><div class="sales-bar-wrap"><div class="sales-bar" style="height:${alto}%;"></div></div><strong>${esc(dia)}</strong><div>${num(x.ingresos).toFixed(0)}</div></div>`;
+      }).join('');
+      $('resumen-compras').innerHTML = `<div class="stats-grid">${cards.map(c => `<div class="stat-card"><span>${esc(c[0])}</span><strong>${esc(c[1])}</strong></div>`).join('')}</div><div style="font-weight:700;margin:12px 0 8px;">Ingresos confirmados · últimos 7 días</div><div class="sales-chart">${chart}</div><p style="font-size:12px;color:var(--muted);margin-bottom:0;">${esc(d.pedidos)} pedidos registrados · ${esc(d.cancelados)} cancelados.</p>`;
+    }
+
+    async function cargarPromocionesAdmin() {
+      const rows = await apiFetch('/api/admin/promociones');
+      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Mínimo', 'Usos', 'Vence', 'Estado', 'Acciones'], rows.map(p => {
+        const valor = p.tipo === 'porcentaje' ? `${num(p.valor)}%` : bs(p.valor);
+        const usos = `${p.usos}${p.max_usos ? ` / ${p.max_usos}` : ' / ∞'}`;
+        const acciones = `<div class="promo-actions"><button class="btn btn-secondary" onclick="alternarPromocion(${p.id}, ${!p.activo})">${p.activo ? 'Desactivar' : 'Activar'}</button><button class="btn btn-danger" onclick="eliminarPromocion(${p.id})">Eliminar</button></div>`;
+        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${bs(p.minimo)}</td><td>${esc(usos)}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
+      }));
+    }
+    async function crearPromocion() {
+      const body = {
+        codigo: $('promo-codigo').value.trim().toUpperCase(), descripcion: $('promo-descripcion').value.trim(),
+        tipo: $('promo-tipo').value, valor: $('promo-valor').value, minimo: $('promo-minimo').value,
+        max_usos: $('promo-max-usos').value,
+        vence_en: $('promo-vence').value ? new Date($('promo-vence').value).toISOString() : null
+      };
+      try {
+        await apiFetch('/api/admin/promociones', { method: 'POST', body });
+        ['promo-codigo','promo-descripcion','promo-valor','promo-max-usos','promo-vence'].forEach(id => { $(id).value = ''; });
+        $('promo-minimo').value = '0';
+        toast('Promoción creada correctamente.');
+        await cargarPromocionesAdmin();
+      } catch (e) { alert(e.message); }
+    }
+    async function alternarPromocion(id, activo) {
+      try { await apiFetch(`/api/admin/promociones/${id}`, { method: 'PUT', body: { activo } }); await cargarPromocionesAdmin(); }
+      catch (e) { alert(e.message); }
+    }
+    async function eliminarPromocion(id) {
+      if (!confirm('¿Eliminar esta promoción? Los pedidos anteriores conservarán el descuento registrado.')) return;
+      try { await apiFetch(`/api/admin/promociones/${id}`, { method: 'DELETE' }); await cargarPromocionesAdmin(); }
+      catch (e) { alert(e.message); }
+    }
+
     async function cargarTabAdmin(tab) {
       const destino = $('contenido-' + tab);
       destino.innerHTML = '<p>Cargando...</p>';
       try {
-        if (tab === 'perfiles') {
+        if (tab === 'promociones') {
+          await cargarPromocionesAdmin();
+        } else if (tab === 'perfiles') {
           const rows = await apiFetch('/api/admin/perfiles');
           destino.innerHTML = tabla(['Nombre', 'Correo', 'Teléfono', 'Registro', 'Compras pagadas', 'Total gastado', 'Puntos'],
             rows.map(r => `<tr><td>${esc(r.nombre || '—')}</td><td>${esc(r.email)}</td><td>${esc(r.telefono || '—')}</td><td>${fecha(r.creado_en)}</td><td>${r.compras}</td><td>${bs(r.total_gastado)}</td><td>${bs(r.puntos)}</td></tr>`));
         } else if (tab === 'compras') {
+          await renderEstadisticasAdmin();
           const rows = await apiFetch('/api/admin/pedidos');
-          const vendidos = rows.filter(r => r.estado === 'pagado' || r.estado === 'entregado');
-          $('resumen-compras').innerHTML = `<strong>Pedidos:</strong> ${rows.length} &nbsp;|&nbsp; <strong>Pagados/entregados:</strong> ${vendidos.length} &nbsp;|&nbsp; <strong>Total vendido:</strong> ${bs(vendidos.reduce((s, r) => s + num(r.total), 0))}`;
           const acciones = { pendiente: ['pagado', 'cancelado'], pagado: ['entregado', 'cancelado'], entregado: ['cancelado'], cancelado: [] };
           const etiqueta = { pagado: 'Marcar pagado', entregado: 'Marcar entregado', cancelado: 'Cancelar' };
-          destino.innerHTML = tabla(['Código', 'Fecha', 'Cliente', 'Cuenta', 'Detalle', 'Subtotal', 'Puntos usados', 'Total', 'Cashback', 'Ref. pago', 'Estado', 'Acciones'],
+          destino.innerHTML = tabla(['Código', 'Fecha', 'Cliente', 'Cuenta', 'Detalle', 'Subtotal', 'Promo', 'Puntos usados', 'Total', 'Cashback', 'Ref. pago', 'Estado', 'Acciones'],
             rows.map(r => {
               const det = (r.items || []).map(i => `${i.cantidad}x ${i.nombre}${variante(i) ? ' (' + variante(i) + ')' : ''}`).join('; ');
               const btns = (acciones[r.estado] || []).map(e => `<button class="btn ${e === 'cancelado' ? 'btn-danger' : ''}" onclick="cambiarEstadoPedido(${r.id}, '${e}')">${etiqueta[e]}</button>`).join('');
-              return `<tr><td><strong>${esc(r.codigo)}</strong></td><td>${fecha(r.creado_en)}</td><td>${esc(r.cliente_nombre)}<br>${esc(r.cliente_telefono)}${r.cliente_nota ? '<br><em>' + esc(r.cliente_nota) + '</em>' : ''}</td><td>${esc(r.usuario_email || 'Invitado')}</td><td>${esc(det)}</td><td>${bs(r.subtotal)}</td><td>${bs(r.puntos_usados)}</td><td><strong>${bs(r.total)}</strong></td><td>${bs(r.cashback)}${r.cashback_acreditado ? ' ✔' : ''}</td><td>${esc(r.referencia_pago || '—')}</td><td><span class="badge ${esc(r.estado)}">${esc(r.estado)}</span></td><td>${btns}</td></tr>`;
+              return `<tr><td><strong>${esc(r.codigo)}</strong></td><td>${fecha(r.creado_en)}</td><td>${esc(r.cliente_nombre)}<br>${esc(r.cliente_telefono)}${r.cliente_nota ? '<br><em>' + esc(r.cliente_nota) + '</em>' : ''}</td><td>${esc(r.usuario_email || 'Invitado')}</td><td>${esc(det)}</td><td>${bs(r.subtotal)}</td><td>${r.promo_codigo ? `${esc(r.promo_codigo)} (-${bs(r.descuento_promo)})` : '—'}</td><td>${bs(r.puntos_usados)}</td><td><strong>${bs(r.total)}</strong></td><td>${bs(r.cashback)}${r.cashback_acreditado ? ' ✔' : ''}</td><td>${esc(r.referencia_pago || '—')}</td><td><span class="badge ${esc(r.estado)}">${esc(r.estado)}</span></td><td>${btns}</td></tr>`;
             }));
         } else if (tab === 'puntos') {
           const rows = await apiFetch('/api/admin/puntos');
@@ -1428,12 +1644,17 @@
       });
     })();
 
-    window.onload = async () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       renderHeader();
       guardarCarrito();
       await cargarAplicacionCompleta();
       if (sesion) await actualizarPerfil();
-    };
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+        }
+      });
+    });
   </script>
 </body>
 </html>

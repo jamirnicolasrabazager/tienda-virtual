@@ -21,8 +21,52 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
 
 const app = express();
 app.disable('x-powered-by');
-app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+app.set('trust proxy', 1);
+
+// Cabeceras defensivas sin imponer una CSP incompatible con el HTML legado.
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  next();
+});
+
+// CORS cerrado por defecto; permite orígenes explícitos mediante CORS_ORIGINS.
+const ORIGENES_PERMITIDOS = new Set((process.env.CORS_ORIGINS || '').split(',').map(v => v.trim()).filter(Boolean));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    let host = '';
+    try { host = new URL(origin).hostname; } catch (_) { return callback(null, false); }
+    const local = /^(localhost|127\.0\.0\.1)$/.test(host);
+    callback(null, local || ORIGENES_PERMITIDOS.has(origin));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'], maxAge: 600
+}));
+app.use(express.json({ limit: '5mb', strict: true }));
+
+// Limitador ligero por instancia. En Vercel serverless es una defensa de primera línea.
+const ventanasRate = new Map();
+function rateLimit({ ventanaMs = 15 * 60 * 1000, max = 30, mensaje = 'Demasiadas solicitudes. Inténtalo más tarde.' } = {}) {
+  return (req, res, next) => {
+    const ahora = Date.now();
+    const clave = `${req.ip || req.socket.remoteAddress || 'unknown'}:${req.path}`;
+    let item = ventanasRate.get(clave);
+    if (!item || ahora >= item.hasta) item = { cuenta: 0, hasta: ahora + ventanaMs };
+    item.cuenta += 1; ventanasRate.set(clave, item);
+    if (ventanasRate.size > 5000) for (const [k, v] of ventanasRate) if (ahora >= v.hasta) ventanasRate.delete(k);
+    res.setHeader('RateLimit-Limit', String(max));
+    res.setHeader('RateLimit-Remaining', String(Math.max(0, max - item.cuenta)));
+    if (item.cuenta > max) {
+      res.setHeader('Retry-After', String(Math.ceil((item.hasta - ahora) / 1000)));
+      return res.status(429).json({ error: mensaje });
+    }
+    next();
+  };
+}
 
 // ---------- Utilidades ----------
 class HttpError extends Error {
@@ -54,17 +98,30 @@ function idValido(v) {
 // ---------- Base de datos ----------
 function cadenaConexion() {
   const raw = process.env.DATABASE_URL || '';
-  try { const u = new URL(raw); u.searchParams.delete('sslmode'); return u.toString(); }
-  catch (e) { return raw; }
+  if (!raw) return undefined; // permite cargar la función; la petición devolverá un 503 claro
+  try {
+    const u = new URL(raw);
+    if (!['postgres:', 'postgresql:'].includes(u.protocol)) return raw;
+    u.searchParams.delete('sslmode');
+    return u.toString();
+  } catch (_) { return raw; }
 }
 const esLocal = /localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL || '');
 const pool = new Pool({
   connectionString: cadenaConexion(),
   ssl: esLocal ? false : { rejectUnauthorized: false },
-  max: 3
+  max: Math.max(1, Math.min(10, Number(process.env.PG_POOL_MAX) || 3)),
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 10000,
+  allowExitOnIdle: true
 });
+pool.on('error', err => console.error('Error inesperado del pool PostgreSQL:', err.message));
 
 async function inicializarBD() {
+  const dbUrl = process.env.DATABASE_URL || '';
+  let dbParsed;
+  try { dbParsed = new URL(dbUrl); } catch (_) { throw new HttpError(503, 'Servidor sin configurar: DATABASE_URL falta o es inválida.'); }
+  if (!['postgres:', 'postgresql:'].includes(dbParsed.protocol)) throw new HttpError(503, 'DATABASE_URL debe ser una conexión PostgreSQL.');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_productos (
       id SERIAL PRIMARY KEY,
@@ -122,11 +179,29 @@ async function inicializarBD() {
       monto NUMERIC(12,2) NOT NULL,
       creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
     )`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS promo_codigo VARCHAR(40)`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS descuento_promo NUMERIC(12,2) NOT NULL DEFAULT 0`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tienda_promociones (
+      id SERIAL PRIMARY KEY,
+      codigo VARCHAR(40) UNIQUE NOT NULL,
+      descripcion VARCHAR(250) NOT NULL DEFAULT '',
+      tipo VARCHAR(15) NOT NULL CHECK (tipo IN ('porcentaje','monto')),
+      valor NUMERIC(12,2) NOT NULL CHECK (valor > 0),
+      minimo NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (minimo >= 0),
+      max_usos INTEGER CHECK (max_usos IS NULL OR max_usos > 0),
+      usos INTEGER NOT NULL DEFAULT 0 CHECK (usos >= 0),
+      activo BOOLEAN NOT NULL DEFAULT true,
+      vence_en TIMESTAMPTZ,
+      creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_user ON tienda_pedidos(user_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_mov_user ON tienda_puntos_mov(user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_codigo ON tienda_pedidos(codigo)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_promociones_activa ON tienda_promociones(activo, vence_en)`);
   // Seguridad: si la base es Supabase, estas tablas quedarían expuestas con la clave pública (anon).
   // Con RLS activado y sin políticas, solo este servidor (conexión directa) puede leerlas o escribirlas.
-  for (const t of ['tienda_productos', 'tienda_config', 'tienda_perfiles', 'tienda_pedidos', 'tienda_puntos_mov']) {
+  for (const t of ['tienda_productos', 'tienda_config', 'tienda_perfiles', 'tienda_pedidos', 'tienda_puntos_mov', 'tienda_promociones']) {
     await pool.query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
   }
 }
@@ -260,6 +335,10 @@ async function subirImagenDataUri(dataUri) {
 // =====================================================================
 // RUTAS PÚBLICAS
 // =====================================================================
+app.get('/api/health', ah(async (req, res) => {
+  await pool.query('SELECT 1');
+  res.json({ ok: true, servicio: 'tienda-api' });
+}));
 app.get('/api/productos', ah(async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM tienda_productos ORDER BY id DESC');
   res.json(rows);
@@ -298,10 +377,21 @@ app.get('/api/qr-pago', ah(async (req, res) => {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     try {
-      const r = await fetch(u, { signal: ctrl.signal, redirect: 'error' });
+      const r = await fetch(u, { signal: ctrl.signal, redirect: 'error', headers: { Accept: 'image/png,image/jpeg,image/webp,image/gif' } });
       tipo = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-      if (!r.ok || !EXT_IMG[tipo]) throw new Error('respuesta no válida');
-      buf = Buffer.from(await r.arrayBuffer());
+      const declarado = Number(r.headers.get('content-length') || 0);
+      if (!r.ok || !EXT_IMG[tipo] || declarado > 5 * 1024 * 1024 || !r.body) throw new Error('respuesta no válida');
+      const lector = r.body.getReader();
+      const partes = [];
+      let total = 0;
+      while (true) {
+        const parte = await lector.read();
+        if (parte.done) break;
+        total += parte.value.byteLength;
+        if (total > 5 * 1024 * 1024) { ctrl.abort(); throw new Error('imagen demasiado grande'); }
+        partes.push(Buffer.from(parte.value));
+      }
+      buf = Buffer.concat(partes, total);
     } catch (e) {
       throw new HttpError(502, 'No se pudo obtener la imagen del QR.');
     } finally { clearTimeout(timer); }
@@ -316,7 +406,7 @@ app.get('/api/qr-pago', ah(async (req, res) => {
 }));
 
 // ---------- Cuentas de clientes ----------
-app.post('/api/auth/registro', ah(async (req, res) => {
+app.post('/api/auth/registro', rateLimit({ max: 5, ventanaMs: 60 * 60 * 1000, mensaje: 'Demasiados intentos de registro. Inténtalo más tarde.' }), ah(async (req, res) => {
   const email = str(req.body.email, 200).toLowerCase();
   const password = String(req.body.password || '');
   const nombre = str(req.body.nombre, 120);
@@ -347,7 +437,7 @@ app.post('/api/auth/registro', ah(async (req, res) => {
   res.json(generico);
 }));
 
-app.post('/api/auth/login', ah(async (req, res) => {
+app.post('/api/auth/login', rateLimit({ max: 10, ventanaMs: 15 * 60 * 1000, mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos.' }), ah(async (req, res) => {
   const email = str(req.body.email, 200).toLowerCase();
   const password = String(req.body.password || '');
   if (!email || !password) throw new HttpError(400, 'Ingresa correo y contraseña.');
@@ -356,7 +446,7 @@ app.post('/api/auth/login', ah(async (req, res) => {
   res.json(await respuestaSesion(data.session, data.user));
 }));
 
-app.post('/api/auth/refresh', ah(async (req, res) => {
+app.post('/api/auth/refresh', rateLimit({ max: 30, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
   const refresh_token = String(req.body.refresh_token || '');
   if (!refresh_token) throw new HttpError(400, 'Falta el token de renovación.');
   const { data, error } = await sbAuth().auth.refreshSession({ refresh_token });
@@ -378,17 +468,50 @@ app.get('/api/me', requiereUsuario, ah(async (req, res) => {
   });
 }));
 
+// ---------- Validación pública de códigos promocionales ----------
+function descuentoPromocion(promo, subtotal) {
+  if (!promo || !promo.activo) return 0;
+  if (promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) return 0;
+  if (promo.max_usos != null && Number(promo.usos) >= Number(promo.max_usos)) return 0;
+  if (subtotal < Number(promo.minimo || 0)) return 0;
+  const bruto = promo.tipo === 'porcentaje'
+    ? subtotal * Number(promo.valor) / 100
+    : Number(promo.valor);
+  return r2(Math.max(0, Math.min(subtotal, bruto)));
+}
+
+app.get('/api/promociones/validar', rateLimit({ max: 30, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
+  const codigo = str(req.query.codigo, 40).toUpperCase();
+  const subtotal = Number(req.query.subtotal);
+  if (!/^[A-Z0-9_-]{3,40}$/.test(codigo) || !Number.isFinite(subtotal) || subtotal < 0) {
+    throw new HttpError(400, 'Código promocional o subtotal inválido.');
+  }
+  const { rows: [promo] } = await pool.query(
+    'SELECT codigo, descripcion, tipo, valor, minimo, max_usos, usos, activo, vence_en FROM tienda_promociones WHERE codigo = $1', [codigo]);
+  if (!promo || !promo.activo || (promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) ||
+      (promo.max_usos != null && Number(promo.usos) >= Number(promo.max_usos))) {
+    throw new HttpError(404, 'El código promocional no existe, venció o ya alcanzó su límite de usos.');
+  }
+  if (subtotal < Number(promo.minimo || 0)) {
+    throw new HttpError(400, `Esta promoción requiere una compra mínima de Bs. ${Number(promo.minimo).toFixed(2)}.`);
+  }
+  const descuento = descuentoPromocion(promo, subtotal);
+  if (descuento <= 0) throw new HttpError(400, 'El código promocional no se puede aplicar a este pedido.');
+  res.json({ codigo: promo.codigo, descripcion: promo.descripcion, descuento, tipo: promo.tipo, valor: Number(promo.valor) });
+}));
+
 // ---------- Crear pedido (cliente invitado o con cuenta) ----------
 function formatearPedido(p) {
   return {
     id: p.id, codigo: p.codigo, estado: p.estado, creado_en: p.creado_en,
     cliente: { nombre: p.cliente_nombre, telefono: p.cliente_telefono, nota: p.cliente_nota || '' },
     items: p.items, subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
+    promo_codigo: p.promo_codigo || '', descuento_promo: Number(p.descuento_promo || 0),
     total: Number(p.total), cashback: Number(p.cashback), referencia_pago: p.referencia_pago || ''
   };
 }
 
-app.post('/api/pedidos', opcional, ah(async (req, res) => {
+app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje: 'Has realizado demasiados pedidos. Inténtalo más tarde.' }), opcional, ah(async (req, res) => {
   const b = req.body || {};
   const itemsIn = Array.isArray(b.items) ? b.items : [];
   if (!itemsIn.length || itemsIn.length > 50) throw new HttpError(400, 'El carrito está vacío.');
@@ -399,6 +522,8 @@ app.post('/api/pedidos', opcional, ah(async (req, res) => {
   if (!tel) throw new HttpError(400, 'Ingresa un celular válido de 8 dígitos (ej: 71234567).');
   const nota = str(cli.nota, 500);
   const referencia = str(b.referencia_pago, 120);
+  const promoCodigo = str(b.promo_codigo, 40).toUpperCase();
+  if (promoCodigo && !/^[A-Z0-9_-]{3,40}$/.test(promoCodigo)) throw new HttpError(400, 'Código promocional inválido.');
   const puntosSolicitados = r2(Math.max(0, Number(b.puntos) || 0));
   if (puntosSolicitados > 0 && !req.usuario) throw new HttpError(401, 'Inicia sesión para usar tus puntos.');
 
@@ -436,15 +561,23 @@ app.post('/api/pedidos', opcional, ah(async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    let descuentoPromo = 0;
+    if (promoCodigo) {
+      const { rows: [promo] } = await client.query(
+        'SELECT * FROM tienda_promociones WHERE codigo = $1 FOR UPDATE', [promoCodigo]);
+      descuentoPromo = descuentoPromocion(promo, subtotal);
+      if (!promo || descuentoPromo <= 0) throw new HttpError(400, 'El código promocional ya no es válido para este pedido.');
+      await client.query('UPDATE tienda_promociones SET usos = usos + 1 WHERE id = $1', [promo.id]);
+    }
     let descuento = 0;
     if (req.usuario) {
       await asegurarPerfil(client, req.usuario);
       const { rows: [perf] } = await client.query(
         'SELECT puntos FROM tienda_perfiles WHERE user_id = $1 FOR UPDATE', [req.usuario.id]);
-      descuento = r2(Math.min(puntosSolicitados, Number(perf.puntos), subtotal));
+      descuento = r2(Math.min(puntosSolicitados, Number(perf.puntos), Math.max(0, subtotal - descuentoPromo)));
     }
-    const total = r2(subtotal - descuento);
-    // El cashback se calcula sobre lo realmente pagado (los puntos usados no generan nuevos puntos)
+    const total = r2(Math.max(0, subtotal - descuentoPromo - descuento));
+    // Los puntos y cupones descuentan la compra, por lo que no generan cashback.
     const cashback = (req.usuario && subtotal > 0) ? floor2(cashbackBruto * (total / subtotal)) : 0;
 
     let pedido = null;
@@ -453,11 +586,11 @@ app.post('/api/pedidos', opcional, ah(async (req, res) => {
       const r = await client.query(
         `INSERT INTO tienda_pedidos
            (codigo, user_id, cliente_nombre, cliente_telefono, cliente_nota, items,
-            subtotal, puntos_usados, total, cashback, referencia_pago)
-         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11)
+            subtotal, puntos_usados, promo_codigo, descuento_promo, total, cashback, referencia_pago)
+         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9,$10,$11,$12,$13)
          ON CONFLICT (codigo) DO NOTHING RETURNING *`,
         [codigo, req.usuario ? req.usuario.id : null, nombre, '+591' + tel, nota,
-         JSON.stringify(lineas), subtotal, descuento, total, cashback, referencia]
+         JSON.stringify(lineas), subtotal, descuento, promoCodigo || null, descuentoPromo, total, cashback, referencia]
       );
       pedido = r.rows[0] || null;
     }
@@ -479,10 +612,29 @@ app.post('/api/pedidos', opcional, ah(async (req, res) => {
   }
 }));
 
+// Seguimiento protegido por código y últimos cuatro dígitos del teléfono.
+// Devuelve solo la información necesaria para consultar el estado del pedido.
+app.get('/api/pedidos/seguimiento', rateLimit({ max: 20, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
+  const codigo = str(req.query.codigo, 20).toUpperCase();
+  const telefono = String(req.query.telefono || '').replace(/\D/g, '').slice(-4);
+  if (!/^JG-\d{6}$/.test(codigo) || !/^\d{4}$/.test(telefono)) {
+    throw new HttpError(400, 'Ingresa un código de pedido y los últimos 4 dígitos del celular.');
+  }
+  const { rows: [p] } = await pool.query(
+    `SELECT codigo, estado, creado_en, items, subtotal, puntos_usados, promo_codigo,
+            descuento_promo, total, cashback, RIGHT(REPLACE(cliente_telefono, '+591', ''), 4) AS telefono_final
+       FROM tienda_pedidos WHERE codigo = $1`, [codigo]);
+  if (!p || p.telefono_final !== telefono) throw new HttpError(404, 'No encontramos un pedido con esos datos. Verifica el código y el teléfono.');
+  res.json({ codigo: p.codigo, estado: p.estado, creado_en: p.creado_en,
+    items: p.items, subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
+    promo_codigo: p.promo_codigo || '', descuento_promo: Number(p.descuento_promo || 0),
+    total: Number(p.total), cashback: Number(p.cashback) });
+}));
+
 // =====================================================================
 // RUTAS DE ADMINISTRADOR (JWT de Supabase + correo en ADMIN_EMAILS)
 // =====================================================================
-app.post('/api/imagenes', requiereAdmin, ah(async (req, res) => {
+app.post('/api/imagenes', rateLimit({ max: 40, ventanaMs: 60 * 60 * 1000 }), requiereAdmin, ah(async (req, res) => {
   const url = await subirImagenDataUri(req.body && req.body.data);
   res.status(201).json({ url });
 }));
@@ -588,6 +740,62 @@ app.get('/api/admin/puntos', requiereAdmin, ah(async (req, res) => {
   res.json(rows);
 }));
 
+app.get('/api/admin/estadisticas', requiereAdmin, ah(async (req, res) => {
+  const { rows: [resumen] } = await pool.query(`
+    SELECT COUNT(*)::int AS pedidos,
+      COUNT(*) FILTER (WHERE estado = 'pendiente')::int AS pendientes,
+      COUNT(*) FILTER (WHERE estado IN ('pagado','entregado'))::int AS confirmados,
+      COUNT(*) FILTER (WHERE estado = 'cancelado')::int AS cancelados,
+      COALESCE(SUM(total) FILTER (WHERE estado IN ('pagado','entregado')), 0) AS ingresos,
+      COALESCE(AVG(total) FILTER (WHERE estado IN ('pagado','entregado')), 0) AS ticket_promedio
+    FROM tienda_pedidos`);
+  const { rows: dias } = await pool.query(`
+    SELECT to_char(dia, 'YYYY-MM-DD') AS fecha, COALESCE(SUM(p.total), 0) AS ingresos
+      FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS serie(dia)
+      LEFT JOIN tienda_pedidos p ON p.creado_en::date = dia::date AND p.estado IN ('pagado','entregado')
+     GROUP BY dia ORDER BY dia`);
+  res.json({ ...resumen, ingresos: Number(resumen.ingresos), ticket_promedio: Number(resumen.ticket_promedio),
+    ventas_por_dia: dias.map(d => ({ fecha: d.fecha, ingresos: Number(d.ingresos) })) });
+}));
+
+app.get('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM tienda_promociones ORDER BY creado_en DESC LIMIT 300');
+  res.json(rows);
+}));
+app.post('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
+  const b = req.body || {};
+  const codigo = str(b.codigo, 40).toUpperCase();
+  const descripcion = str(b.descripcion, 250);
+  const tipo = String(b.tipo || '');
+  const valor = Number(b.valor);
+  const minimo = Number(b.minimo || 0);
+  const maxUsos = b.max_usos === '' || b.max_usos == null ? null : Number(b.max_usos);
+  const vence = b.vence_en ? new Date(b.vence_en) : null;
+  if (!/^[A-Z0-9_-]{3,40}$/.test(codigo)) throw new HttpError(400, 'El código debe tener entre 3 y 40 caracteres (A-Z, 0-9, guion o guion bajo).');
+  if (!['porcentaje','monto'].includes(tipo) || !Number.isFinite(valor) || valor <= 0 || (tipo === 'porcentaje' && valor > 100)) throw new HttpError(400, 'Tipo o valor de promoción inválido.');
+  if (!Number.isFinite(minimo) || minimo < 0 || (maxUsos !== null && (!Number.isInteger(maxUsos) || maxUsos < 1))) throw new HttpError(400, 'Compra mínima o límite de usos inválido.');
+  if (vence && !Number.isFinite(vence.getTime())) throw new HttpError(400, 'Fecha de vencimiento inválida.');
+  try {
+    const { rows: [promo] } = await pool.query(
+      `INSERT INTO tienda_promociones (codigo, descripcion, tipo, valor, minimo, max_usos, activo, vence_en)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [codigo, descripcion, tipo, valor, minimo, maxUsos, b.activo !== false, vence]);
+    res.status(201).json(promo);
+  } catch (e) { if (e.code === '23505') throw new HttpError(409, 'Ya existe una promoción con ese código.'); throw e; }
+}));
+app.put('/api/admin/promociones/:id', requiereAdmin, ah(async (req, res) => {
+  const id = idValido(req.params.id);
+  const activo = req.body && req.body.activo === true;
+  const { rowCount } = await pool.query('UPDATE tienda_promociones SET activo = $1 WHERE id = $2', [activo, id]);
+  if (!rowCount) throw new HttpError(404, 'Promoción no encontrada.');
+  res.json({ completado: true, activo });
+}));
+app.delete('/api/admin/promociones/:id', requiereAdmin, ah(async (req, res) => {
+  const { rowCount } = await pool.query('DELETE FROM tienda_promociones WHERE id = $1', [idValido(req.params.id)]);
+  if (!rowCount) throw new HttpError(404, 'Promoción no encontrada.');
+  res.json({ completado: true });
+}));
+
 // Flujo de estados. El cashback se acredita SOLO cuando el administrador confirma el pago.
 const TRANSICIONES = {
   pendiente: ['pagado', 'entregado', 'cancelado'],
@@ -642,6 +850,10 @@ app.patch('/api/admin/pedidos/:id', requiereAdmin, ah(async (req, res) => {
           devueltos = true;
         }
       }
+    }
+    if (nuevo === 'cancelado' && p.promo_codigo) {
+      // Al cancelar se libera el cupo consumido por el cupón de ese pedido.
+      await client.query('UPDATE tienda_promociones SET usos = GREATEST(0, usos - 1) WHERE codigo = $1', [p.promo_codigo]);
     }
     await client.query(
       'UPDATE tienda_pedidos SET estado = $1, cashback_acreditado = $2, puntos_devueltos = $3 WHERE id = $4',

@@ -4,7 +4,8 @@
   "description": "Tienda virtual con carrito, pedidos por WhatsApp, cashback y panel admin con Supabase Auth",
   "main": "api/index.js",
   "scripts": {
-    "start": "node api/index.js"
+    "start": "node --env-file-if-exists=.env api/index.js",
+    "check": "node --check api/index.js && node scripts/check-inline.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
