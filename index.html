@@ -323,6 +323,55 @@
       .sales-chart { gap:4px; padding:10px 5px; }
     }
 
+
+    /* ----- Barra lateral de servicios al cliente ----- */
+    .quick-rail { position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:850; display:flex; flex-direction:column; gap:6px; padding:8px 5px; background:#fff; border:1px solid var(--border); border-left:0; border-radius:0 16px 16px 0; box-shadow:var(--shadow-md); }
+    .quick-rail button { width:58px; min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border:0; border-radius:10px; background:transparent; color:var(--graphite); cursor:pointer; }
+    .quick-rail button:hover, .quick-rail button:focus-visible { background:var(--primary-soft); color:var(--primary); outline:none; }
+    .quick-rail button span { font-size:21px; line-height:1.2; }
+    .quick-rail button small { font-size:10px; font-weight:700; }
+    .drawer-backdrop { position:fixed; inset:0; z-index:1100; background:rgba(14,14,16,.42); opacity:0; visibility:hidden; transition:opacity .22s,visibility .22s; }
+    .drawer-backdrop.active { opacity:1; visibility:visible; }
+    .side-drawer { position:fixed; inset:0 auto 0 0; z-index:1101; width:min(360px,90vw); background:#fff; box-shadow:0 20px 60px rgba(0,0,0,.24); transform:translateX(-105%); transition:transform .25s ease; display:flex; flex-direction:column; }
+    .side-drawer.active { transform:translateX(0); }
+    .drawer-head { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:22px 20px; background:var(--dark); color:#fff; }
+    .drawer-head strong,.drawer-head small { display:block; }
+    .drawer-head strong { font-size:17px; }
+    .drawer-head small { margin-top:3px; color:#c8c5ce; font-size:12px; }
+    .drawer-close { width:34px;height:34px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:23px;cursor:pointer; }
+    .drawer-body { overflow:auto; padding:22px 20px; }
+    .drawer-section > p:first-child { margin-top:0; }
+    .drawer-section .btn { width:100%; text-decoration:none; }
+    .drawer-muted { color:var(--muted); font-size:13px; }
+    .social-links { display:grid; gap:10px; }
+    .social-links a { display:block; padding:12px 14px; border:1px solid var(--border); border-radius:12px; color:var(--primary); font-weight:700; text-decoration:none; background:#fff; }
+    .social-links a:hover { background:var(--primary-soft); }
+    .promo-card { padding:15px; margin:10px 0; border:1px solid var(--border); border-radius:14px; background:linear-gradient(145deg,#fff,#f8f3ff); }
+    .promo-card code { display:inline-block; padding:5px 9px; border-radius:8px; color:var(--primary); background:var(--primary-soft); font-weight:800; font-size:14px; letter-spacing:.04em; }
+    .promo-card strong { color:var(--primary); }
+    .promo-card p { margin:7px 0; font-size:13px; }
+    .promo-card small { color:var(--muted); }
+    .order-card { margin:14px 0; padding:18px; border:1px solid var(--border); border-radius:16px; background:#fff; box-shadow:var(--shadow-sm); }
+    .order-card-head { display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap; }
+    .order-card-items { padding:12px 0; margin:12px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+    .order-item-line { display:flex;justify-content:space-between;gap:14px;padding:5px 0;font-size:13px; }
+    .order-progress { display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:16px 0 8px; }
+    .order-step { position:relative;text-align:center;color:var(--muted);font-size:11px;font-weight:600;padding-top:22px; }
+    .order-step:before { content:'';position:absolute;top:0;left:calc(50% - 7px);width:14px;height:14px;border-radius:50%;background:#e5e5eb;border:2px solid #fff;box-shadow:0 0 0 1px var(--border); }
+    .order-step.done { color:var(--success); }
+    .order-step.done:before { background:var(--success);box-shadow:0 0 0 1px var(--success); }
+    .order-progress.cancelled { display:block;padding:10px;border-radius:10px;color:var(--danger);background:var(--danger-soft);font-weight:700;text-align:center; }
+    .order-card-images { display:flex;gap:8px;flex-wrap:wrap;margin-top:10px; }
+    .order-card-images img { width:58px;height:58px;object-fit:cover;border-radius:9px;border:1px solid var(--border); }
+    .editor-images-head { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px; }
+    .editor-images-head .form-control { max-width:290px;margin:0; }
+    .modal-wide { max-height:90vh; }
+    .modal-form label { display:block;font-weight:700;margin:6px 0 4px;font-size:13px; }
+    .admin-order-actions { display:flex;gap:5px;flex-wrap:wrap; }
+    .admin-order-actions .btn { padding:6px 9px;font-size:11px; }
+    @media (max-width:860px) { .quick-rail { top:auto;bottom:0;left:0;right:0;transform:none;flex-direction:row;justify-content:space-around;border-radius:14px 14px 0 0;border:1px solid var(--border);border-bottom:0;padding:5px 8px calc(5px + env(safe-area-inset-bottom)); } .quick-rail button { width:auto;flex:1;min-height:50px; } .container { padding-bottom:150px; } .fab-carrito { bottom:75px; } .side-drawer { inset:0 0 0 auto; transform:translateX(105%); } .side-drawer.active { transform:translateX(0); } }
+    @media (max-width:560px) { .order-card { padding:14px; } .order-progress { gap:2px; } .order-step { font-size:10px; } .modal { padding:10px; } .modal-content { max-height:94vh; } .editor-images-head { align-items:flex-start; } .editor-images-head .form-control { max-width:100%; } }
+
     /* ----- Adaptación a móviles ----- */
     @media (max-width: 860px) {
       header { flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
@@ -348,6 +397,33 @@
     <div id="nav-buttons" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;"></div>
   </header>
 
+  <!-- Acceso lateral para clientes: el seguimiento ya no ocupa espacio al final del catálogo. -->
+  <nav class="quick-rail" aria-label="Servicios de la tienda">
+    <button type="button" title="Atención al cliente" aria-label="Atención al cliente" onclick="abrirPanelLateral('atencion')"><span>💬</span><small>Atención</small></button>
+    <button type="button" title="Mis pedidos" aria-label="Mis pedidos" onclick="abrirMisPedidos()"><span>📦</span><small>Pedidos</small></button>
+    <button type="button" title="Promociones" aria-label="Promociones" onclick="abrirPanelLateral('promos')"><span>🎟️</span><small>Promos</small></button>
+    <button type="button" title="Redes sociales" aria-label="Redes sociales" onclick="abrirPanelLateral('redes')"><span>🌐</span><small>Redes</small></button>
+  </nav>
+  <div class="drawer-backdrop" id="drawer-backdrop" onclick="cerrarPanelLateral()"></div>
+  <aside class="side-drawer" id="side-drawer" aria-hidden="true" aria-label="Información y servicios">
+    <div class="drawer-head"><div><strong id="drawer-titulo">Atención al cliente</strong><small>JG Tienda Digital</small></div><button type="button" class="drawer-close" onclick="cerrarPanelLateral()" aria-label="Cerrar">×</button></div>
+    <div class="drawer-body">
+      <section id="drawer-seccion-atencion" class="drawer-section">
+        <p>¿Necesitas ayuda con una compra, talla, color o forma de pago? Nuestro equipo puede atenderte por WhatsApp.</p>
+        <a id="drawer-whatsapp" class="btn" href="#" target="_blank" rel="noopener noreferrer">💬 Contactar atención al cliente</a>
+        <p class="drawer-muted">Horario y tiempos de respuesta sujetos a disponibilidad del equipo.</p>
+      </section>
+      <section id="drawer-seccion-promos" class="drawer-section" hidden>
+        <p class="drawer-muted">Códigos promocionales por temporada y fechas especiales. Cada cupón indica su descuento y vigencia.</p>
+        <div id="drawer-promos-lista" aria-live="polite"><p>Cargando promociones...</p></div>
+      </section>
+      <section id="drawer-seccion-redes" class="drawer-section" hidden>
+        <p>Sigue las novedades, nuevos productos y promociones en nuestras redes oficiales.</p>
+        <div id="drawer-redes-lista" class="social-links"></div>
+      </section>
+    </div>
+  </aside>
+
   <!-- CONTENEDOR GENERAL DE LAS VISTAS SPA -->
   <div class="container">
 
@@ -366,16 +442,6 @@
         </select>
       </div>
       <div class="grid" id="catalogo-grid-container"></div>
-      <section class="tracking-box" aria-labelledby="titulo-seguimiento">
-        <h3 id="titulo-seguimiento" style="margin:0 0 5px;">📦 Consulta el estado de tu pedido</h3>
-        <p style="margin:0 0 14px;color:var(--muted);font-size:13px;">Ingresa el código que recibiste y los últimos 4 dígitos del celular usado en la compra.</p>
-        <form class="tracking-form" onsubmit="consultarSeguimiento(event)">
-          <div><label for="track-codigo" style="font-size:12px;font-weight:700;">Código de pedido</label><input id="track-codigo" class="form-control" placeholder="JG-123456" maxlength="9" required></div>
-          <div><label for="track-telefono" style="font-size:12px;font-weight:700;">Últimos 4 dígitos del celular</label><input id="track-telefono" class="form-control" inputmode="numeric" maxlength="4" placeholder="4567" required></div>
-          <button class="btn" type="submit" id="btn-seguimiento">Consultar</button>
-        </form>
-        <div id="tracking-result" class="tracking-result" aria-live="polite"></div>
-      </section>
     </div>
 
     <!-- VISTA INTERFAZ ADMINISTRADOR (solo se muestra con sesión de administrador verificada por el servidor) -->
@@ -418,6 +484,14 @@
               <label style="font-weight:bold; display:block; margin-bottom:5px;">Enlace General de Redes Sociales (Facebook/Instagram):</label>
               <input type="text" id="cfg-redes" class="form-control">
             </div>
+            <div style="margin-bottom: 15px;">
+              <label style="font-weight:bold; display:block; margin-bottom:5px;">Instagram (enlace del perfil):</label>
+              <input type="url" id="cfg-instagram" class="form-control" placeholder="https://instagram.com/tu-tienda">
+            </div>
+            <div style="margin-bottom: 15px;">
+              <label style="font-weight:bold; display:block; margin-bottom:5px;">TikTok (enlace del perfil):</label>
+              <input type="url" id="cfg-tiktok" class="form-control" placeholder="https://tiktok.com/@tu-tienda">
+            </div>
             <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
             <h4>Cobros: QR y datos bancarios</h4>
             <div style="margin-bottom: 15px;">
@@ -440,8 +514,10 @@
             <label style="font-weight:bold; display:block; margin-bottom:5px;">Cashback del producto (%):</label>
             <input type="number" id="prod-cashback" placeholder="Ej: 5 (equivale a 5% en puntos)" class="form-control" min="0" max="100" step="0.1" value="0">
             <textarea id="prod-descripcion" placeholder="Descripción del artículo..." class="form-control" rows="3"></textarea>
-            <input type="text" id="prod-tallas" placeholder="Tallas disponibles (ej: S, M, L, XL)" class="form-control">
-            <input type="text" id="prod-colores" placeholder="Colores disponibles (ej: Negro, Azul, Blanco)" class="form-control">
+            <label for="prod-tallas" style="font-weight:bold;display:block;margin-bottom:5px;">Tallas disponibles (independientes):</label>
+            <input type="text" id="prod-tallas" placeholder="Ej.: S, M, L, XL o 2XL 3XL" class="form-control">
+            <label for="prod-colores" style="font-weight:bold;display:block;margin-bottom:5px;">Colores disponibles (independientes):</label>
+            <input type="text" id="prod-colores" placeholder="Ej.: Negro, Azul marino, Blanco" class="form-control">
 
             <div style="margin-bottom: 15px;">
               <label style="font-weight:bold; display:block; margin-bottom:5px;">Imágenes del Producto (la primera es la principal):</label>
@@ -501,7 +577,8 @@
             <div><label for="promo-valor">Valor</label><input id="promo-valor" class="form-control" type="number" min="0.01" step="0.01" placeholder="10"></div>
             <div><label for="promo-minimo">Compra mínima (Bs.)</label><input id="promo-minimo" class="form-control" type="number" min="0" step="0.01" value="0"></div>
             <div><label for="promo-max-usos">Límite de usos (opcional)</label><input id="promo-max-usos" class="form-control" type="number" min="1" step="1" placeholder="Sin límite"></div>
-            <div><label for="promo-vence">Fecha de vencimiento (opcional)</label><input id="promo-vence" class="form-control" type="datetime-local"></div>
+            <div><label for="promo-inicia">Válido desde (opcional)</label><input id="promo-inicia" class="form-control" type="datetime-local"></div>
+            <div><label for="promo-vence">Válido hasta / vencimiento (opcional)</label><input id="promo-vence" class="form-control" type="datetime-local"></div>
           </div>
           <button class="btn" style="margin-top:15px;" onclick="crearPromocion()">Crear promoción</button>
         </div>
@@ -516,6 +593,54 @@
 
   <!-- Botón flotante del carrito -->
   <button class="btn fab-carrito" id="fab-carrito" onclick="abrirCarrito()">🛒 Carrito <span id="carrito-contador">0</span></button>
+
+  <!-- Historial de pedidos del cliente, presentado como una vista amplia similar al carrito. -->
+  <div class="modal" id="modal-mis-pedidos">
+    <div class="modal-content modal-wide" style="display:block;max-width:860px;">
+      <button type="button" class="modal-close" onclick="cerrarMisPedidos()" aria-label="Cerrar">×</button>
+      <h2 style="margin-top:0;">📦 Mis pedidos</h2>
+      <p class="drawer-muted">Consulta tus compras, el estado de pago y el avance de la entrega.</p>
+      <div id="mis-pedidos-contenido" aria-live="polite"><p>Cargando tus pedidos...</p></div>
+    </div>
+  </div>
+
+  <!-- Editor completo de productos para administración. -->
+  <div class="modal" id="modal-editar-producto">
+    <div class="modal-content modal-form" style="display:block;max-width:720px;">
+      <button type="button" class="modal-close" onclick="cerrarEditarProducto()" aria-label="Cerrar">×</button>
+      <h2 style="margin-top:0;">✏️ Editar producto</h2>
+      <input type="hidden" id="edit-prod-id">
+      <label>Nombre</label><input id="edit-prod-nombre" class="form-control" maxlength="255">
+      <label>Precio (Bs.)</label><input id="edit-prod-precio" type="number" min="0" step="0.01" class="form-control">
+      <label>Cashback (%)</label><input id="edit-prod-cashback" type="number" min="0" max="100" step="0.1" class="form-control">
+      <label>Descripción</label><textarea id="edit-prod-descripcion" class="form-control" rows="3" maxlength="4000"></textarea>
+      <label>Tallas separadas de los colores</label><input id="edit-prod-tallas" class="form-control" placeholder="Ej.: S, M, L, XL o 2XL 3XL">
+      <label>Colores (separa cada color con coma)</label><input id="edit-prod-colores" class="form-control" placeholder="Ej.: Negro, Azul marino, Blanco">
+      <label>WhatsApp específico (opcional)</label><input id="edit-prod-whatsapp" class="form-control" placeholder="8 dígitos">
+      <label>Facebook del producto (opcional)</label><input id="edit-prod-fb" class="form-control">
+      <label>Instagram del producto (opcional)</label><input id="edit-prod-ig" class="form-control">
+      <div class="editor-images-head"><strong>Galería de imágenes (máximo 8)</strong><input type="file" id="edit-prod-files" accept="image/*" multiple class="form-control" onchange="agregarImagenesEditarProducto()"></div>
+      <div id="edit-prod-imagenes" class="miniaturas-admin"></div>
+      <button type="button" id="btn-guardar-edicion-producto" class="btn" style="width:100%;margin-top:18px;" onclick="guardarEdicionProducto()">Guardar producto</button>
+    </div>
+  </div>
+
+  <!-- Editor de información y evidencias de un pedido desde el panel de administración. -->
+  <div class="modal" id="modal-editar-pedido">
+    <div class="modal-content modal-form" style="display:block;max-width:700px;">
+      <button type="button" class="modal-close" onclick="cerrarEditarPedido()" aria-label="Cerrar">×</button>
+      <h2 style="margin-top:0;">🧾 Editar pedido</h2>
+      <input type="hidden" id="edit-pedido-id">
+      <label>Nombre del cliente</label><input id="edit-pedido-nombre" class="form-control" maxlength="120">
+      <label>Teléfono (8 dígitos o +591)</label><input id="edit-pedido-telefono" class="form-control" maxlength="14">
+      <label>Dirección / nota de entrega</label><textarea id="edit-pedido-nota" class="form-control" rows="2" maxlength="500"></textarea>
+      <label>Referencia de pago</label><input id="edit-pedido-referencia" class="form-control" maxlength="120">
+      <label>Nota interna del administrador (no visible al cliente)</label><textarea id="edit-pedido-nota-admin" class="form-control" rows="2" maxlength="1000"></textarea>
+      <div class="editor-images-head"><strong>Imágenes / comprobantes del pedido (máximo 8)</strong><input type="file" id="edit-pedido-files" accept="image/*" multiple class="form-control" onchange="agregarImagenesPedidoAdmin()"></div>
+      <div id="edit-pedido-imagenes" class="miniaturas-admin"></div>
+      <button type="button" id="btn-guardar-edicion-pedido" class="btn" style="width:100%;margin-top:18px;" onclick="guardarEdicionPedido()">Guardar cambios del pedido</button>
+    </div>
+  </div>
 
   <!-- ================= MODAL DE DETALLE INTERACTIVO DEL PRODUCTO ================= -->
   <div class="modal" id="modal-detalle">
@@ -759,9 +884,12 @@
         $('cfg-bienvenida').value = bienvenidaText;
         $('cfg-whatsapp').value = whatsappDefecto;
         $('cfg-redes').value = redesSociales;
+        $('cfg-instagram').value = cacheConfig.cfg_instagram || '';
+        $('cfg-tiktok').value = cacheConfig.cfg_tiktok || '';
         $('cfg-banco-datos').value = cacheConfig.cfg_banco_datos || '';
         $('cfg-qr-pago').value = cacheConfig.cfg_qr_pago || '';
         mostrarVistaPreviaQr();
+        renderServiciosCliente();
 
         const rProd = await fetch('/api/productos');
         if (!rProd.ok) throw new Error('No se pudo cargar el catálogo.');
@@ -820,6 +948,12 @@
       renderizarCatalogoPublico(filtrados);
     }
 
+    function opcionesDesdeTexto(texto, tipo) {
+      const raw = String(texto || '');
+      const partes = tipo === 'talla' && !/[,;|\n]/.test(raw) ? raw.trim().split(/\s+/) : raw.split(/[,;|\n]+/);
+      return [...new Set(partes.map(v => v.trim()).filter(Boolean))];
+    }
+
     // ---------- Ficha de producto ----------
     function abrirDetalleFichaProducto(p) {
       productoSeleccionadoActual = p;
@@ -834,9 +968,9 @@
       $('md-cashback').innerText = pct > 0 ? `⭐ Gana ${pct}% en puntos (Bs. ${r2(num(p.precio) * pct / 100).toFixed(2)} por unidad)` : '';
 
       // Selección única estricta: una talla y un color como máximo (botones excluyentes tipo radio)
-      const hayTallas = p.tallas ? renderOpciones($('md-lista-tallas'), p.tallas.split(','), v => { tallaSeleccionada = v; }) > 0 : false;
+      const hayTallas = p.tallas ? renderOpciones($('md-lista-tallas'), opcionesDesdeTexto(p.tallas, 'talla'), v => { tallaSeleccionada = v; }) > 0 : false;
       $('md-contenedor-tallas').style.display = hayTallas ? 'block' : 'none';
-      const hayColores = p.colores ? renderOpciones($('md-lista-colores'), p.colores.split(','), v => { colorSeleccionada = v; }) > 0 : false;
+      const hayColores = p.colores ? renderOpciones($('md-lista-colores'), opcionesDesdeTexto(p.colores, 'color'), v => { colorSeleccionada = v; }) > 0 : false;
       $('md-contenedor-colores').style.display = hayColores ? 'block' : 'none';
 
       actualizarPrecioTotalFicha();
@@ -1238,11 +1372,13 @@
       const prods = ped.items.map(i => prodPorId(i.id)).filter(Boolean);
       const redes = prods.map(p => { try { return JSON.parse(p.redes_json || '{}'); } catch (e) { return {}; } });
       const fb = urlLink((redes.find(r => r.fb) || {}).fb) || urlLink(cacheConfig.cfg_redes);
-      const ig = urlLink((redes.find(r => r.ig) || {}).ig);
+      const ig = urlLink((redes.find(r => r.ig) || {}).ig) || urlLink(cacheConfig.cfg_instagram);
+      const tt = urlLink(cacheConfig.cfg_tiktok);
       const cont = $('redes-alternativas-container');
       cont.innerHTML = '';
       if (fb) cont.innerHTML += `<a href="${esc(fb)}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:bold; text-decoration:none;">Facebook</a>`;
       if (ig) cont.innerHTML += `<a href="${esc(ig)}" target="_blank" rel="noopener" style="color:#e1306c; font-weight:bold; text-decoration:none;">Instagram</a>`;
+      if (tt) cont.innerHTML += `<a href="${esc(tt)}" target="_blank" rel="noopener" style="color:var(--ink); font-weight:bold; text-decoration:none;">TikTok</a>`;
       $('modal-comprobante').classList.add('active');
     }
 
@@ -1259,12 +1395,187 @@
       destino.innerHTML = '';
       try {
         const d = await apiFetch(`/api/pedidos/seguimiento?codigo=${encodeURIComponent(codigo)}&telefono=${encodeURIComponent(telefono)}`, { noAuth: true });
-        const estado = { pendiente: 'Pendiente de confirmación', pagado: 'Pago confirmado', entregado: 'Entregado', cancelado: 'Cancelado' }[d.estado] || d.estado;
-        const detalle = (d.items || []).map(i => `<li>${esc(i.cantidad)} × ${esc(i.nombre)}${i.talla ? ` · Talla ${esc(i.talla)}` : ''}${i.color ? ` · ${esc(i.color)}` : ''}</li>`).join('');
-        destino.innerHTML = `<div class="caja-info"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>Pedido ${esc(d.codigo)}</strong><span class="badge ${esc(d.estado)}">${esc(estado)}</span></div><p style="margin:8px 0;color:var(--muted);font-size:12px;">Registrado: ${esc(fecha(d.creado_en))}</p><ul style="margin:8px 0;padding-left:20px;">${detalle}</ul><div class="resumen-row"><span>Total</span><strong>${bs(d.total)}</strong></div></div>`;
+        destino.innerHTML = htmlTarjetaPedido(d);
       } catch (e) { destino.innerHTML = `<p class="coupon-message error">${esc(e.message)}</p>`; }
       finally { btn.disabled = false; btn.innerText = 'Consultar'; }
     }
+
+    // ---------- Panel lateral de atención, promociones y redes ----------
+    const drawerSections = {
+      atencion: ['Atención al cliente', 'drawer-seccion-atencion'],
+      promos: ['Promociones y cupones', 'drawer-seccion-promos'],
+      redes: ['Nuestras redes sociales', 'drawer-seccion-redes']
+    };
+    function abrirPanelLateral(seccion) {
+      const data = drawerSections[seccion] || drawerSections.atencion;
+      $('drawer-titulo').textContent = data[0];
+      Object.values(drawerSections).forEach(([, id]) => { $(id).hidden = true; });
+      $(data[1]).hidden = false;
+      $('drawer-backdrop').classList.add('active');
+      $('side-drawer').classList.add('active');
+      $('side-drawer').setAttribute('aria-hidden', 'false');
+      renderServiciosCliente();
+      if (seccion === 'promos') cargarPromocionesPublicas();
+    }
+    function cerrarPanelLateral() {
+      $('drawer-backdrop').classList.remove('active');
+      $('side-drawer').classList.remove('active');
+      $('side-drawer').setAttribute('aria-hidden', 'true');
+    }
+    function renderServiciosCliente() {
+      const numero = numeroWhatsApp(cacheConfig.cfg_whatsapp || '62323719');
+      $('drawer-whatsapp').href = numero ? `https://wa.me/${numero}?text=${encodeURIComponent('Hola, necesito ayuda con mi compra en JG Tienda Digital.')}` : '#';
+      const enlaces = [
+        ['Facebook', cacheConfig.cfg_redes], ['Instagram', cacheConfig.cfg_instagram], ['TikTok', cacheConfig.cfg_tiktok]
+      ].filter(([, url]) => urlLink(url));
+      $('drawer-redes-lista').innerHTML = enlaces.length
+        ? enlaces.map(([name, url]) => `<a href="${esc(urlLink(url))}" target="_blank" rel="noopener noreferrer">${esc(name)} ↗</a>`).join('')
+        : '<p class="drawer-muted">Próximamente publicaremos nuestros enlaces oficiales.</p>';
+    }
+    async function copiarCodigoPromo(codigo) {
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(codigo);
+        else { const temp = document.createElement('textarea'); temp.value = codigo; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); temp.remove(); }
+        toast(`Código ${codigo} copiado. Pégalo en el carrito al finalizar tu compra.`);
+      } catch (_) { prompt('Copia este código promocional:', codigo); }
+    }
+    async function cargarPromocionesPublicas() {
+      const target = $('drawer-promos-lista');
+      target.innerHTML = '<p class="drawer-muted">Cargando promociones...</p>';
+      try {
+        const rows = await apiFetch('/api/promociones', { noAuth: true });
+        if (!rows.length) { target.innerHTML = '<p class="drawer-muted">Por el momento no hay promociones disponibles.</p>'; return; }
+        target.innerHTML = rows.map(p => {
+          const inicia = p.inicia_en ? new Date(p.inicia_en) : null;
+          const futura = inicia && inicia.getTime() > Date.now();
+          const descuento = p.tipo === 'porcentaje' ? `${num(p.valor)}% de descuento` : `${bs(p.valor)} de descuento`;
+          const vigencia = `${inicia ? `Desde ${fecha(p.inicia_en)}` : 'Vigente'}${p.vence_en ? ` · Hasta ${fecha(p.vence_en)}` : ' · Sin fecha de vencimiento'}`;
+          const cupo = p.usos_restantes == null ? '' : ` · Quedan ${num(p.usos_restantes)} usos`;
+          return `<article class="promo-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><code>${esc(p.codigo)}</code><button type="button" class="btn btn-secondary" style="padding:6px 10px;font-size:12px;" onclick="copiarCodigoPromo('${esc(p.codigo)}')">Copiar código</button></div><p><strong>${esc(descuento)}</strong></p><p>${esc(p.descripcion || 'Promoción especial')}</p><small>${esc(vigencia)}${p.minimo > 0 ? ` · Compra mínima: ${bs(p.minimo)}` : ''}${cupo}</small><p><span class="badge ${futura ? 'pendiente' : 'pagado'}">${futura ? 'Próximamente' : 'Disponible'}</span></p></article>`;
+        }).join('');
+      } catch (e) { target.innerHTML = `<p class="coupon-message error">${esc(e.message)}</p>`; }
+    }
+
+    // ---------- Historial de pedidos del perfil ----------
+    function etiquetaEstadoPedido(estado) {
+      return ({ pendiente: 'Por confirmar pago', pagado: 'Por entregar', entregado: 'Completado', cancelado: 'Cancelado' })[estado] || estado;
+    }
+    function htmlProgresoPedido(estado) {
+      if (estado === 'cancelado') return '<div class="order-progress cancelled">Este pedido fue cancelado</div>';
+      const paso = estado === 'entregado' ? 3 : estado === 'pagado' ? 2 : 1;
+      const labels = ['Por confirmar pago', 'Por entregar', 'Completado'];
+      return `<div class="order-progress">${labels.map((label, i) => `<div class="order-step ${i + 1 <= paso ? 'done' : ''}">${label}</div>`).join('')}</div>`;
+    }
+    function htmlTarjetaPedido(p) {
+      const items = (p.items || []).map(i => `<div class="order-item-line"><span>${esc(i.cantidad)} × ${esc(i.nombre)}${i.talla ? ` · Talla ${esc(i.talla)}` : ''}${i.color ? ` · Color ${esc(i.color)}` : ''}</span><strong>${bs(i.subtotal)}</strong></div>`).join('');
+      const imgs = (p.imagenes || []).map(u => `<a href="${esc(urlLink(u))}" target="_blank" rel="noopener"><img src="${esc(urlImg(u))}" alt="Imagen adjunta al pedido" loading="lazy"></a>`).join('');
+      return `<article class="order-card"><div class="order-card-head"><div><strong>Pedido ${esc(p.codigo)}</strong><div class="drawer-muted">Realizado: ${esc(fecha(p.creado_en))}</div></div><span class="badge ${esc(p.estado)}">${esc(etiquetaEstadoPedido(p.estado))}</span></div>${htmlProgresoPedido(p.estado)}<div class="order-card-items">${items || '<p class="drawer-muted">Sin detalle de artículos.</p>'}</div><div class="resumen-row"><span>Subtotal</span><span>${bs(p.subtotal)}</span></div>${num(p.descuento_promo) > 0 ? `<div class="resumen-row"><span>Promoción ${esc(p.promo_codigo || '')}</span><span>− ${bs(p.descuento_promo)}</span></div>` : ''}${num(p.puntos_usados) > 0 ? `<div class="resumen-row"><span>Puntos utilizados</span><span>− ${bs(p.puntos_usados)}</span></div>` : ''}<div class="resumen-total resumen-row"><span>Total</span><strong>${bs(p.total)}</strong></div>${imgs ? `<div class="order-card-images">${imgs}</div>` : ''}</article>`;
+    }
+    async function abrirMisPedidos() {
+      cerrarPanelLateral();
+      $('modal-mis-pedidos').classList.add('active');
+      const destino = $('mis-pedidos-contenido');
+      if (!sesion) {
+        destino.innerHTML = `<div class="caja-info"><h3 style="margin-top:0;">Inicia sesión para ver tus pedidos</h3><p>Los pedidos realizados con tu cuenta aparecerán aquí automáticamente.</p><button class="btn" onclick="cerrarMisPedidos();abrirAuth(false);">Ingresar / Crear cuenta</button><hr style="border:0;border-top:1px solid var(--border);margin:18px 0;"><h3>¿Compraste como invitado?</h3><p class="drawer-muted">Puedes consultar tu pedido con el código y los últimos cuatro dígitos del celular.</p><form class="tracking-form" onsubmit="consultarSeguimiento(event)"><div><label for="track-codigo">Código de pedido</label><input id="track-codigo" class="form-control" placeholder="JG-123456" maxlength="9" required></div><div><label for="track-telefono">Últimos 4 dígitos del celular</label><input id="track-telefono" class="form-control" inputmode="numeric" maxlength="4" placeholder="4567" required></div><button class="btn" type="submit" id="btn-seguimiento">Consultar</button></form><div id="tracking-result" class="tracking-result" aria-live="polite"></div></div>`;
+        return;
+      }
+      destino.innerHTML = '<p class="drawer-muted">Cargando tus pedidos...</p>';
+      try {
+        const rows = await apiFetch('/api/mis-pedidos');
+        destino.innerHTML = rows.length ? rows.map(htmlTarjetaPedido).join('') : '<div class="caja-info"><h3 style="margin-top:0;">Todavía no tienes pedidos</h3><p>Cuando realices una compra con esta cuenta, podrás seguir aquí el pago y la entrega.</p><button class="btn" onclick="cerrarMisPedidos()">Explorar catálogo</button></div>';
+      } catch (e) {
+        destino.innerHTML = `<p class="coupon-message error">${esc(e.message)}</p>${e.status === 401 ? '<button class="btn" onclick="cerrarMisPedidos();abrirAuth(false);">Volver a ingresar</button>' : ''}`;
+      }
+    }
+    function cerrarMisPedidos() { $('modal-mis-pedidos').classList.remove('active'); }
+
+    // ---------- Edición completa de productos, incluyendo la galería ----------
+    let productoEditandoId = null;
+    let imagenesEditarProducto = [];
+    function renderImagenesEditarProducto() {
+      $('edit-prod-imagenes').innerHTML = imagenesEditarProducto.map((u, i) => `<div class="mini-admin ${i === 0 ? 'principal' : ''}"><div class="marco"><img src="${esc(urlImg(u))}" alt="Imagen ${i + 1}"><button type="button" class="quitar" onclick="quitarImagenEditarProducto(${i})">✕</button></div>${i === 0 ? '<span class="etiqueta">Principal</span>' : `<button type="button" class="hacer-principal" onclick="hacerPrincipalEditarProducto(${i})">Hacer principal</button>`}</div>`).join('');
+    }
+    function abrirEditarProducto(id) {
+      const p = prodPorId(id); if (!p) return;
+      productoEditandoId = id; imagenesEditarProducto = imagenesDe(p).filter(u => u !== IMG_VACIA).slice(0, MAX_IMAGENES);
+      $('edit-prod-id').value = id; $('edit-prod-nombre').value = p.nombre || ''; $('edit-prod-precio').value = p.precio;
+      $('edit-prod-cashback').value = num(p.cashback_pct); $('edit-prod-descripcion').value = p.descripcion || '';
+      $('edit-prod-tallas').value = p.tallas || ''; $('edit-prod-colores').value = p.colores || '';
+      $('edit-prod-whatsapp').value = p.whatsapp || '';
+      let redes = {}; try { redes = typeof p.redes_json === 'string' ? JSON.parse(p.redes_json || '{}') : (p.redes_json || {}); } catch (_) {}
+      $('edit-prod-fb').value = redes.fb || ''; $('edit-prod-ig').value = redes.ig || '';
+      $('edit-prod-files').value = ''; renderImagenesEditarProducto(); $('modal-editar-producto').classList.add('active');
+    }
+    async function agregarImagenesEditarProducto() {
+      const input = $('edit-prod-files'); const files = [...input.files]; input.value = '';
+      const libres = Math.max(0, MAX_IMAGENES - imagenesEditarProducto.length);
+      for (const f of files.slice(0, libres)) {
+        try { const data = await comprimirImagen(f, 1200, 'image/jpeg', .82); const out = await apiFetch('/api/imagenes', { method: 'POST', body: { data } }); imagenesEditarProducto.push(out.url); }
+        catch (e) { alert(`${f.name}: ${e.message}`); }
+      }
+      if (files.length > libres) alert('La galería permite un máximo de 8 imágenes.');
+      renderImagenesEditarProducto();
+    }
+    function quitarImagenEditarProducto(i) { imagenesEditarProducto.splice(i, 1); renderImagenesEditarProducto(); }
+    function hacerPrincipalEditarProducto(i) { imagenesEditarProducto.unshift(...imagenesEditarProducto.splice(i, 1)); renderImagenesEditarProducto(); }
+    async function guardarEdicionProducto() {
+      const btn = $('btn-guardar-edicion-producto'); btn.disabled = true; btn.textContent = 'Guardando...';
+      try {
+        await apiFetch('/api/productos/' + productoEditandoId, { method: 'PUT', body: {
+          nombre: $('edit-prod-nombre').value.trim(), precio: $('edit-prod-precio').value,
+          cashback_pct: $('edit-prod-cashback').value, descripcion: $('edit-prod-descripcion').value,
+          tallas: $('edit-prod-tallas').value, colores: $('edit-prod-colores').value,
+          whatsapp: $('edit-prod-whatsapp').value, redes_json: { fb: $('edit-prod-fb').value, ig: $('edit-prod-ig').value },
+          imagenes: imagenesEditarProducto
+        }});
+        cerrarEditarProducto(); await cargarAplicacionCompleta(); toast('Producto actualizado correctamente.');
+      } catch (e) { alert(e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Guardar producto'; }
+    }
+    function cerrarEditarProducto() { $('modal-editar-producto').classList.remove('active'); }
+
+    // ---------- Edición administrativa de pedidos y evidencias ----------
+    let pedidoEditandoId = null;
+    let imagenesPedidoAdmin = [];
+    function renderImagenesPedidoAdmin() {
+      $('edit-pedido-imagenes').innerHTML = imagenesPedidoAdmin.map((u, i) => `<div class="mini-admin"><div class="marco"><img src="${esc(urlImg(u))}" alt="Imagen del pedido ${i + 1}"><button type="button" class="quitar" onclick="quitarImagenPedidoAdmin(${i})">✕</button></div></div>`).join('');
+    }
+    async function editarPedidoAdmin(id) {
+      try {
+        const rows = await apiFetch('/api/admin/pedidos'); const p = rows.find(x => Number(x.id) === Number(id));
+        if (!p) throw new Error('No se encontró el pedido.');
+        pedidoEditandoId = id; imagenesPedidoAdmin = Array.isArray(p.imagenes) ? [...p.imagenes] : [];
+        $('edit-pedido-id').value = id; $('edit-pedido-nombre').value = p.cliente_nombre || '';
+        $('edit-pedido-telefono').value = String(p.cliente_telefono || '').replace('+591','');
+        $('edit-pedido-nota').value = p.cliente_nota || ''; $('edit-pedido-referencia').value = p.referencia_pago || '';
+        $('edit-pedido-nota-admin').value = p.nota_admin || ''; $('edit-pedido-files').value = '';
+        renderImagenesPedidoAdmin(); $('modal-editar-pedido').classList.add('active');
+      } catch (e) { alert(e.message); }
+    }
+    async function agregarImagenesPedidoAdmin() {
+      const input = $('edit-pedido-files'); const files = [...input.files]; input.value = '';
+      const libres = Math.max(0, 8 - imagenesPedidoAdmin.length);
+      for (const f of files.slice(0, libres)) {
+        try { const data = await comprimirImagen(f, 1200, 'image/jpeg', .82); const out = await apiFetch('/api/imagenes', { method: 'POST', body: { data } }); imagenesPedidoAdmin.push(out.url); }
+        catch (e) { alert(`${f.name}: ${e.message}`); }
+      }
+      if (files.length > libres) alert('Se permiten hasta 8 imágenes por pedido.');
+      renderImagenesPedidoAdmin();
+    }
+    function quitarImagenPedidoAdmin(i) { imagenesPedidoAdmin.splice(i, 1); renderImagenesPedidoAdmin(); }
+    async function guardarEdicionPedido() {
+      const btn = $('btn-guardar-edicion-pedido'); btn.disabled = true; btn.textContent = 'Guardando...';
+      try {
+        await apiFetch('/api/admin/pedidos/' + pedidoEditandoId, { method: 'PATCH', body: {
+          cliente_nombre: $('edit-pedido-nombre').value.trim(), cliente_telefono: $('edit-pedido-telefono').value.trim(),
+          cliente_nota: $('edit-pedido-nota').value, referencia_pago: $('edit-pedido-referencia').value,
+          nota_admin: $('edit-pedido-nota-admin').value, imagenes: imagenesPedidoAdmin
+        }});
+        cerrarEditarPedido(); await cargarTabAdmin('compras'); toast('Pedido actualizado correctamente.');
+      } catch (e) { alert(e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Guardar cambios del pedido'; }
+    }
+    function cerrarEditarPedido() { $('modal-editar-pedido').classList.remove('active'); }
 
     // ---------- Cuentas (Supabase Auth a través de la API) ----------
     function renderHeader() {
@@ -1360,6 +1671,9 @@
       document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
       $(vista === 'publica' ? 'vista-publica' : 'vista-admin').classList.add('active');
       $('fab-carrito').style.display = vista === 'publica' ? 'block' : 'none';
+      const rail = document.querySelector('.quick-rail');
+      if (rail) rail.style.display = vista === 'publica' ? '' : 'none';
+      cerrarPanelLateral();
       renderHeader();
       if (vista === 'admin') cambiarTabAdmin('catalogo');
     }
@@ -1382,6 +1696,7 @@
             <input type="number" id="inv-precio-${p.id}" class="form-control" style="width:90px; margin:0;" min="0" step="0.01" value="${num(p.precio)}">
             <label style="font-size:12px;">Cashback %</label>
             <input type="number" id="inv-cb-${p.id}" class="form-control" style="width:80px; margin:0;" min="0" max="100" step="0.1" value="${num(p.cashback_pct)}">
+            <button class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="abrirEditarProducto(${p.id})">Editar completo</button>
             <button class="btn" style="padding:6px 12px; font-size:13px;" onclick="guardarProductoInventario(${p.id})">Guardar</button>
             <button class="btn btn-danger" style="padding:6px 12px; font-size:13px;" onclick="eliminarArticuloInventario(${p.id})">Eliminar</button>
           </span>
@@ -1514,6 +1829,8 @@
             cfg_bienvenida: $('cfg-bienvenida').value,
             cfg_whatsapp: $('cfg-whatsapp').value,
             cfg_redes: $('cfg-redes').value,
+            cfg_instagram: $('cfg-instagram').value,
+            cfg_tiktok: $('cfg-tiktok').value,
             cfg_banco_datos: $('cfg-banco-datos').value,
             cfg_qr_pago: $('cfg-qr-pago').value
           }
@@ -1559,23 +1876,30 @@
 
     async function cargarPromocionesAdmin() {
       const rows = await apiFetch('/api/admin/promociones');
-      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Mínimo', 'Usos', 'Vence', 'Estado', 'Acciones'], rows.map(p => {
+      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Mínimo', 'Usos', 'Desde', 'Vence', 'Estado', 'Acciones'], rows.map(p => {
         const valor = p.tipo === 'porcentaje' ? `${num(p.valor)}%` : bs(p.valor);
         const usos = `${p.usos}${p.max_usos ? ` / ${p.max_usos}` : ' / ∞'}`;
         const acciones = `<div class="promo-actions"><button class="btn btn-secondary" onclick="alternarPromocion(${p.id}, ${!p.activo})">${p.activo ? 'Desactivar' : 'Activar'}</button><button class="btn btn-danger" onclick="eliminarPromocion(${p.id})">Eliminar</button></div>`;
-        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${bs(p.minimo)}</td><td>${esc(usos)}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
+        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${bs(p.minimo)}</td><td>${esc(usos)}</td><td>${esc(p.inicia_en ? fecha(p.inicia_en) : 'Inmediata')}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
       }));
     }
     async function crearPromocion() {
-      const body = {
-        codigo: $('promo-codigo').value.trim().toUpperCase(), descripcion: $('promo-descripcion').value.trim(),
-        tipo: $('promo-tipo').value, valor: $('promo-valor').value, minimo: $('promo-minimo').value,
-        max_usos: $('promo-max-usos').value,
-        vence_en: $('promo-vence').value ? new Date($('promo-vence').value).toISOString() : null
-      };
       try {
+        const fechaIso = valor => {
+          if (!valor) return null;
+          const d = new Date(valor);
+          if (!Number.isFinite(d.getTime())) throw new Error('Revisa las fechas de vigencia de la promoción.');
+          return d.toISOString();
+        };
+        const body = {
+          codigo: $('promo-codigo').value.trim().toUpperCase(), descripcion: $('promo-descripcion').value.trim(),
+          tipo: $('promo-tipo').value, valor: $('promo-valor').value, minimo: $('promo-minimo').value,
+          max_usos: $('promo-max-usos').value,
+          inicia_en: fechaIso($('promo-inicia').value),
+          vence_en: fechaIso($('promo-vence').value)
+        };
         await apiFetch('/api/admin/promociones', { method: 'POST', body });
-        ['promo-codigo','promo-descripcion','promo-valor','promo-max-usos','promo-vence'].forEach(id => { $(id).value = ''; });
+        ['promo-codigo','promo-descripcion','promo-valor','promo-max-usos','promo-inicia','promo-vence'].forEach(id => { $(id).value = ''; });
         $('promo-minimo').value = '0';
         toast('Promoción creada correctamente.');
         await cargarPromocionesAdmin();
@@ -1605,12 +1929,13 @@
           await renderEstadisticasAdmin();
           const rows = await apiFetch('/api/admin/pedidos');
           const acciones = { pendiente: ['pagado', 'cancelado'], pagado: ['entregado', 'cancelado'], entregado: ['cancelado'], cancelado: [] };
-          const etiqueta = { pagado: 'Marcar pagado', entregado: 'Marcar entregado', cancelado: 'Cancelar' };
+          const etiqueta = { pagado: 'Confirmar pago', entregado: 'Marcar completado', cancelado: 'Cancelar' };
           destino.innerHTML = tabla(['Código', 'Fecha', 'Cliente', 'Cuenta', 'Detalle', 'Subtotal', 'Promo', 'Puntos usados', 'Total', 'Cashback', 'Ref. pago', 'Estado', 'Acciones'],
             rows.map(r => {
               const det = (r.items || []).map(i => `${i.cantidad}x ${i.nombre}${variante(i) ? ' (' + variante(i) + ')' : ''}`).join('; ');
               const btns = (acciones[r.estado] || []).map(e => `<button class="btn ${e === 'cancelado' ? 'btn-danger' : ''}" onclick="cambiarEstadoPedido(${r.id}, '${e}')">${etiqueta[e]}</button>`).join('');
-              return `<tr><td><strong>${esc(r.codigo)}</strong></td><td>${fecha(r.creado_en)}</td><td>${esc(r.cliente_nombre)}<br>${esc(r.cliente_telefono)}${r.cliente_nota ? '<br><em>' + esc(r.cliente_nota) + '</em>' : ''}</td><td>${esc(r.usuario_email || 'Invitado')}</td><td>${esc(det)}</td><td>${bs(r.subtotal)}</td><td>${r.promo_codigo ? `${esc(r.promo_codigo)} (-${bs(r.descuento_promo)})` : '—'}</td><td>${bs(r.puntos_usados)}</td><td><strong>${bs(r.total)}</strong></td><td>${bs(r.cashback)}${r.cashback_acreditado ? ' ✔' : ''}</td><td>${esc(r.referencia_pago || '—')}</td><td><span class="badge ${esc(r.estado)}">${esc(r.estado)}</span></td><td>${btns}</td></tr>`;
+              const editar = `<button class="btn btn-secondary" onclick="editarPedidoAdmin(${r.id})">Editar / imágenes</button>`;
+              return `<tr><td><strong>${esc(r.codigo)}</strong></td><td>${fecha(r.creado_en)}</td><td>${esc(r.cliente_nombre)}<br>${esc(r.cliente_telefono)}${r.cliente_nota ? '<br><em>' + esc(r.cliente_nota) + '</em>' : ''}</td><td>${esc(r.usuario_email || 'Invitado')}</td><td>${esc(det)}${(r.imagenes || []).length ? `<br><small>${r.imagenes.length} imagen(es) adjunta(s)</small>` : ''}</td><td>${bs(r.subtotal)}</td><td>${r.promo_codigo ? `${esc(r.promo_codigo)} (-${bs(r.descuento_promo)})` : '—'}</td><td>${bs(r.puntos_usados)}</td><td><strong>${bs(r.total)}</strong></td><td>${bs(r.cashback)}${r.cashback_acreditado ? ' ✔' : ''}</td><td>${esc(r.referencia_pago || '—')}</td><td><span class="badge ${esc(r.estado)}">${esc(etiquetaEstadoPedido(r.estado))}</span></td><td><div class="admin-order-actions">${btns}${editar}</div></td></tr>`;
             }));
         } else if (tab === 'puntos') {
           const rows = await apiFetch('/api/admin/puntos');
@@ -1652,6 +1977,7 @@
       document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
           document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+          cerrarPanelLateral();
         }
       });
     });

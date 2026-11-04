@@ -63,3 +63,23 @@ Si tu frontend y API usan dominios distintos, agrega el origen exacto del fronte
 - Las rutas administrativas verifican el JWT de Supabase y el correo incluido en `ADMIN_EMAILS`.
 - El limitador de solicitudes incluido funciona por instancia; en despliegues de alto tráfico conviene complementarlo con límites distribuidos del proveedor o un WAF.
 - Los descuentos, precios y puntos se vuelven a calcular en el backend; los valores del navegador no se consideran fuente de verdad.
+
+
+## Mejoras de atención y experiencia del cliente (v2.1)
+
+- Barra lateral fija para abrir atención por WhatsApp, historial de pedidos, promociones y redes sociales. En pantallas pequeñas se transforma en una barra inferior.
+- El bloque de seguimiento se retiró de debajo del catálogo. Para clientes invitados, la consulta por código y últimos cuatro dígitos del teléfono está dentro de **Mis pedidos**.
+- Los clientes con sesión pueden ver hasta sus últimos 100 pedidos vinculados a su propia cuenta. Los estados se presentan como **Por confirmar pago**, **Por entregar**, **Completado** o **Cancelado**.
+- Las promociones permiten definir fecha y hora de inicio y vencimiento. Se muestran también las promociones programadas; los cupones futuros no se aceptan hasta su fecha de inicio.
+- El panel admin permite editar todos los campos principales de un producto y administrar su galería (hasta 8 imágenes). También permite editar datos de contacto de un pedido, notas internas y adjuntar hasta 8 imágenes/evidencias.
+- Tallas y colores se representan en selectores independientes. Para conservar nombres de colores de varias palabras, sepáralos con coma, punto y coma o salto de línea. Las tallas antiguas separadas por espacios (por ejemplo `2XL 3XL`) ahora se interpretan como opciones diferentes.
+
+## Migraciones aditivas v2.1
+
+Al iniciar la API se añaden, si faltan, `tienda_promociones.inicia_en`, `tienda_pedidos.nota_admin` y `tienda_pedidos.imagenes`. No se eliminan ni se reemplazan columnas o datos existentes. La migración se ejecuta automáticamente con la conexión PostgreSQL configurada en `DATABASE_URL`.
+
+Los pedidos hechos **con sesión iniciada** quedan asociados al perfil y aparecen en **Mis pedidos**. Los pedidos hechos como invitado pueden consultarse desde esa misma interfaz con el código JG y los últimos cuatro dígitos del celular.
+
+## Verificaciones realizadas para esta entrega
+
+Ejecuta `npm run check` para verificar sintaxis de la API y del frontend, IDs duplicados y referencias literales a elementos HTML. Estas verificaciones locales no sustituyen una prueba de integración con las credenciales reales de Supabase/PostgreSQL ni una implementación de prueba en Vercel.

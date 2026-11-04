@@ -76,7 +76,13 @@ const ah = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(n
 const r2 = n => Math.round((Number(n) || 0) * 100) / 100;
 const floor2 = n => Math.floor((Number(n) || 0) * 100 + 1e-9) / 100;
 const str = (v, max) => String(v == null ? '' : v).trim().slice(0, max);
-const listaOpc = txt => String(txt || '').split(',').map(s => s.trim()).filter(Boolean);
+const listaOpc = (txt, tipo = 'normal') => {
+  const raw = String(txt || '');
+  const partes = tipo === 'talla' && !/[,;|\n]/.test(raw)
+    ? raw.trim().split(/\s+/)
+    : raw.split(/[,;|\n]+/);
+  return [...new Set(partes.map(s => s.trim()).filter(Boolean))];
+};
 
 function normalizarTelBO(raw) {
   let d = String(raw || '').replace(/\D/g, '');
@@ -181,6 +187,8 @@ async function inicializarBD() {
     )`);
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS promo_codigo VARCHAR(40)`);
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS descuento_promo NUMERIC(12,2) NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS nota_admin TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS imagenes JSONB NOT NULL DEFAULT '[]'::jsonb`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_promociones (
       id SERIAL PRIMARY KEY,
@@ -198,7 +206,8 @@ async function inicializarBD() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_user ON tienda_pedidos(user_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_mov_user ON tienda_puntos_mov(user_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_codigo ON tienda_pedidos(codigo)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_promociones_activa ON tienda_promociones(activo, vence_en)`);
+  await pool.query(`ALTER TABLE tienda_promociones ADD COLUMN IF NOT EXISTS inicia_en TIMESTAMPTZ`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_promociones_activa ON tienda_promociones(activo, inicia_en, vence_en)`);
   // Seguridad: si la base es Supabase, estas tablas quedarían expuestas con la clave pública (anon).
   // Con RLS activado y sin políticas, solo este servidor (conexión directa) puede leerlas o escribirlas.
   for (const t of ['tienda_productos', 'tienda_config', 'tienda_perfiles', 'tienda_pedidos', 'tienda_puntos_mov', 'tienda_promociones']) {
@@ -471,6 +480,7 @@ app.get('/api/me', requiereUsuario, ah(async (req, res) => {
 // ---------- Validación pública de códigos promocionales ----------
 function descuentoPromocion(promo, subtotal) {
   if (!promo || !promo.activo) return 0;
+  if (promo.inicia_en && new Date(promo.inicia_en).getTime() > Date.now()) return 0;
   if (promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) return 0;
   if (promo.max_usos != null && Number(promo.usos) >= Number(promo.max_usos)) return 0;
   if (subtotal < Number(promo.minimo || 0)) return 0;
@@ -487,10 +497,14 @@ app.get('/api/promociones/validar', rateLimit({ max: 30, ventanaMs: 15 * 60 * 10
     throw new HttpError(400, 'Código promocional o subtotal inválido.');
   }
   const { rows: [promo] } = await pool.query(
-    'SELECT codigo, descripcion, tipo, valor, minimo, max_usos, usos, activo, vence_en FROM tienda_promociones WHERE codigo = $1', [codigo]);
-  if (!promo || !promo.activo || (promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) ||
+    'SELECT codigo, descripcion, tipo, valor, minimo, max_usos, usos, activo, inicia_en, vence_en FROM tienda_promociones WHERE codigo = $1', [codigo]);
+  if (!promo || !promo.activo) throw new HttpError(404, 'El código promocional no existe o está desactivado.');
+  if (promo.inicia_en && new Date(promo.inicia_en).getTime() > Date.now()) {
+    throw new HttpError(400, `Esta promoción todavía no está vigente. Comienza el ${new Date(promo.inicia_en).toLocaleString('es-BO')}.`);
+  }
+  if ((promo.vence_en && new Date(promo.vence_en).getTime() <= Date.now()) ||
       (promo.max_usos != null && Number(promo.usos) >= Number(promo.max_usos))) {
-    throw new HttpError(404, 'El código promocional no existe, venció o ya alcanzó su límite de usos.');
+    throw new HttpError(404, 'Esta promoción venció o alcanzó su límite de usos.');
   }
   if (subtotal < Number(promo.minimo || 0)) {
     throw new HttpError(400, `Esta promoción requiere una compra mínima de Bs. ${Number(promo.minimo).toFixed(2)}.`);
@@ -500,6 +514,20 @@ app.get('/api/promociones/validar', rateLimit({ max: 30, ventanaMs: 15 * 60 * 10
   res.json({ codigo: promo.codigo, descripcion: promo.descripcion, descuento, tipo: promo.tipo, valor: Number(promo.valor) });
 }));
 
+// Promociones visibles para clientes: solo activas, dentro de sus fechas y con cupo disponible.
+app.get('/api/promociones', rateLimit({ max: 60, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT codigo, descripcion, tipo, valor, minimo, inicia_en, vence_en,
+           (inicia_en IS NULL OR inicia_en <= now()) AS disponible,
+           CASE WHEN max_usos IS NULL THEN NULL ELSE GREATEST(0, max_usos - usos) END AS usos_restantes
+      FROM tienda_promociones
+     WHERE activo = true
+       AND (vence_en IS NULL OR vence_en > now())
+       AND (max_usos IS NULL OR usos < max_usos)
+     ORDER BY vence_en ASC NULLS LAST, creado_en DESC LIMIT 100`);
+  res.json(rows);
+}));
+
 // ---------- Crear pedido (cliente invitado o con cuenta) ----------
 function formatearPedido(p) {
   return {
@@ -507,7 +535,8 @@ function formatearPedido(p) {
     cliente: { nombre: p.cliente_nombre, telefono: p.cliente_telefono, nota: p.cliente_nota || '' },
     items: p.items, subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
     promo_codigo: p.promo_codigo || '', descuento_promo: Number(p.descuento_promo || 0),
-    total: Number(p.total), cashback: Number(p.cashback), referencia_pago: p.referencia_pago || ''
+    total: Number(p.total), cashback: Number(p.cashback), referencia_pago: p.referencia_pago || '',
+    imagenes: Array.isArray(p.imagenes) ? p.imagenes : []
   };
 }
 
@@ -542,8 +571,8 @@ app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje
     if (!p) throw new HttpError(400, 'Un producto del carrito ya no está disponible. Actualiza la página.');
     const cant = parseInt(it.cantidad, 10);
     if (!(cant >= 1 && cant <= 99)) throw new HttpError(400, 'Cantidad inválida en el carrito.');
-    const tallasOk = listaOpc(p.tallas);
-    const coloresOk = listaOpc(p.colores);
+    const tallasOk = listaOpc(p.tallas, 'talla');
+    const coloresOk = listaOpc(p.colores, 'color');
     let talla = str(it.talla, 50);
     let color = str(it.color, 50);
     if (tallasOk.length && !tallasOk.includes(talla)) throw new HttpError(400, `Selecciona una talla válida para "${p.nombre}".`);
@@ -612,6 +641,16 @@ app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje
   }
 }));
 
+// Historial privado del cliente: la consulta se limita siempre al UUID del JWT validado.
+app.get('/api/mis-pedidos', requiereUsuario, ah(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, codigo, estado, creado_en, cliente_nombre, cliente_telefono, cliente_nota,
+            items, subtotal, puntos_usados, promo_codigo, descuento_promo, total, cashback,
+            referencia_pago, imagenes
+       FROM tienda_pedidos WHERE user_id = $1 ORDER BY id DESC LIMIT 100`, [req.usuario.id]);
+  res.json(rows.map(formatearPedido));
+}));
+
 // Seguimiento protegido por código y últimos cuatro dígitos del teléfono.
 // Devuelve solo la información necesaria para consultar el estado del pedido.
 app.get('/api/pedidos/seguimiento', rateLimit({ max: 20, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
@@ -622,13 +661,13 @@ app.get('/api/pedidos/seguimiento', rateLimit({ max: 20, ventanaMs: 15 * 60 * 10
   }
   const { rows: [p] } = await pool.query(
     `SELECT codigo, estado, creado_en, items, subtotal, puntos_usados, promo_codigo,
-            descuento_promo, total, cashback, RIGHT(REPLACE(cliente_telefono, '+591', ''), 4) AS telefono_final
+            descuento_promo, total, cashback, imagenes, RIGHT(REPLACE(cliente_telefono, '+591', ''), 4) AS telefono_final
        FROM tienda_pedidos WHERE codigo = $1`, [codigo]);
   if (!p || p.telefono_final !== telefono) throw new HttpError(404, 'No encontramos un pedido con esos datos. Verifica el código y el teléfono.');
   res.json({ codigo: p.codigo, estado: p.estado, creado_en: p.creado_en,
     items: p.items, subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
     promo_codigo: p.promo_codigo || '', descuento_promo: Number(p.descuento_promo || 0),
-    total: Number(p.total), cashback: Number(p.cashback) });
+    total: Number(p.total), cashback: Number(p.cashback), imagenes: Array.isArray(p.imagenes) ? p.imagenes : [] });
 }));
 
 // =====================================================================
@@ -675,15 +714,40 @@ app.post('/api/productos', requiereAdmin, ah(async (req, res) => {
 app.put('/api/productos/:id', requiereAdmin, ah(async (req, res) => {
   const id = idValido(req.params.id);
   const b = req.body || {};
-  let precio = null;
-  if (b.precio !== undefined && b.precio !== '') {
-    precio = Number(b.precio);
-    if (!Number.isFinite(precio) || precio < 0) throw new HttpError(400, 'Precio inválido.');
+  const fields = [];
+  const values = [];
+  const add = (column, value) => { values.push(value); fields.push(`${column} = $${values.length}`); };
+  if (Object.prototype.hasOwnProperty.call(b, 'nombre')) {
+    const nombre = str(b.nombre, 255);
+    if (!nombre) throw new HttpError(400, 'El nombre del producto no puede quedar vacío.');
+    add('nombre', nombre);
   }
-  const cashback = (b.cashback_pct === undefined || b.cashback_pct === '') ? null : pctValido(b.cashback_pct);
-  const { rowCount } = await pool.query(
-    'UPDATE tienda_productos SET precio = COALESCE($1, precio), cashback_pct = COALESCE($2, cashback_pct) WHERE id = $3',
-    [precio, cashback, id]);
+  if (Object.prototype.hasOwnProperty.call(b, 'precio')) {
+    const precio = Number(b.precio);
+    if (!Number.isFinite(precio) || precio < 0) throw new HttpError(400, 'Precio inválido.');
+    add('precio', precio);
+  }
+  if (Object.prototype.hasOwnProperty.call(b, 'descripcion')) add('descripcion', str(b.descripcion, 4000));
+  if (Object.prototype.hasOwnProperty.call(b, 'tallas')) add('tallas', str(b.tallas, 255));
+  if (Object.prototype.hasOwnProperty.call(b, 'colores')) add('colores', str(b.colores, 255));
+  if (Object.prototype.hasOwnProperty.call(b, 'whatsapp')) add('whatsapp', str(b.whatsapp, 50));
+  if (Object.prototype.hasOwnProperty.call(b, 'cashback_pct')) add('cashback_pct', pctValido(b.cashback_pct));
+  if (Object.prototype.hasOwnProperty.call(b, 'redes_json')) {
+    const redes = b.redes_json && typeof b.redes_json === 'object' ? b.redes_json : {};
+    add('redes_json', JSON.stringify({ fb: str(redes.fb, 500), ig: str(redes.ig, 500) }));
+  }
+  if (Object.prototype.hasOwnProperty.call(b, 'imagenes')) {
+    if (!Array.isArray(b.imagenes) || b.imagenes.length > 8) throw new HttpError(400, 'La galería debe contener como máximo 8 imágenes.');
+    const imagenes = b.imagenes.map(u => {
+      if (typeof u !== 'string' || u.length > 1000 || !/^https?:\/\/\S+$/i.test(u)) throw new HttpError(400, 'Cada imagen debe ser una URL HTTP(S) válida.');
+      return u;
+    });
+    add('imagenes', JSON.stringify(imagenes));
+    add('imagen_url', imagenes[0] || '');
+  }
+  if (!fields.length) throw new HttpError(400, 'No se recibieron cambios para guardar.');
+  values.push(id);
+  const { rowCount } = await pool.query(`UPDATE tienda_productos SET ${fields.join(', ')} WHERE id = $${values.length}`, values);
   if (!rowCount) throw new HttpError(404, 'Producto no encontrado.');
   res.json({ completado: true });
 }));
@@ -770,16 +834,19 @@ app.post('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
   const valor = Number(b.valor);
   const minimo = Number(b.minimo || 0);
   const maxUsos = b.max_usos === '' || b.max_usos == null ? null : Number(b.max_usos);
+  const inicia = b.inicia_en ? new Date(b.inicia_en) : null;
   const vence = b.vence_en ? new Date(b.vence_en) : null;
   if (!/^[A-Z0-9_-]{3,40}$/.test(codigo)) throw new HttpError(400, 'El código debe tener entre 3 y 40 caracteres (A-Z, 0-9, guion o guion bajo).');
   if (!['porcentaje','monto'].includes(tipo) || !Number.isFinite(valor) || valor <= 0 || (tipo === 'porcentaje' && valor > 100)) throw new HttpError(400, 'Tipo o valor de promoción inválido.');
   if (!Number.isFinite(minimo) || minimo < 0 || (maxUsos !== null && (!Number.isInteger(maxUsos) || maxUsos < 1))) throw new HttpError(400, 'Compra mínima o límite de usos inválido.');
+  if (inicia && !Number.isFinite(inicia.getTime())) throw new HttpError(400, 'Fecha de inicio inválida.');
   if (vence && !Number.isFinite(vence.getTime())) throw new HttpError(400, 'Fecha de vencimiento inválida.');
+  if (inicia && vence && vence <= inicia) throw new HttpError(400, 'La fecha de vencimiento debe ser posterior a la fecha de inicio.');
   try {
     const { rows: [promo] } = await pool.query(
-      `INSERT INTO tienda_promociones (codigo, descripcion, tipo, valor, minimo, max_usos, activo, vence_en)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [codigo, descripcion, tipo, valor, minimo, maxUsos, b.activo !== false, vence]);
+      `INSERT INTO tienda_promociones (codigo, descripcion, tipo, valor, minimo, max_usos, activo, inicia_en, vence_en)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [codigo, descripcion, tipo, valor, minimo, maxUsos, b.activo !== false, inicia, vence]);
     res.status(201).json(promo);
   } catch (e) { if (e.code === '23505') throw new HttpError(409, 'Ya existe una promoción con ese código.'); throw e; }
 }));
@@ -806,34 +873,53 @@ const TRANSICIONES = {
 
 app.patch('/api/admin/pedidos/:id', requiereAdmin, ah(async (req, res) => {
   const id = idValido(req.params.id);
-  const nuevo = String((req.body && req.body.estado) || '');
-  if (!Object.prototype.hasOwnProperty.call(TRANSICIONES, nuevo)) throw new HttpError(400, 'Estado inválido.');
+  const b = req.body || {};
+  const nuevo = b.estado === undefined ? null : String(b.estado || '');
+  if (nuevo !== null && !Object.prototype.hasOwnProperty.call(TRANSICIONES, nuevo)) throw new HttpError(400, 'Estado inválido.');
+
+  const cambios = {};
+  if (Object.prototype.hasOwnProperty.call(b, 'cliente_nombre')) {
+    const v = str(b.cliente_nombre, 120); if (v.length < 2) throw new HttpError(400, 'El nombre del cliente no es válido.');
+    cambios.cliente_nombre = v;
+  }
+  if (Object.prototype.hasOwnProperty.call(b, 'cliente_telefono')) {
+    const v = normalizarTelBO(b.cliente_telefono); if (!v) throw new HttpError(400, 'El teléfono debe tener 8 dígitos válidos.');
+    cambios.cliente_telefono = '+591' + v;
+  }
+  if (Object.prototype.hasOwnProperty.call(b, 'cliente_nota')) cambios.cliente_nota = str(b.cliente_nota, 500);
+  if (Object.prototype.hasOwnProperty.call(b, 'referencia_pago')) cambios.referencia_pago = str(b.referencia_pago, 120);
+  if (Object.prototype.hasOwnProperty.call(b, 'nota_admin')) cambios.nota_admin = str(b.nota_admin, 1000);
+  if (Object.prototype.hasOwnProperty.call(b, 'imagenes')) {
+    if (!Array.isArray(b.imagenes) || b.imagenes.length > 8) throw new HttpError(400, 'Se permiten hasta 8 imágenes por pedido.');
+    cambios.imagenes = JSON.stringify(b.imagenes.map(u => {
+      if (typeof u !== 'string' || u.length > 1000 || !/^https:\/\/\S+$/i.test(u)) throw new HttpError(400, 'Cada imagen adjunta debe ser una URL HTTPS válida.');
+      return u;
+    }));
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const { rows: [p] } = await client.query('SELECT * FROM tienda_pedidos WHERE id = $1 FOR UPDATE', [id]);
     if (!p) throw new HttpError(404, 'Pedido no encontrado.');
-    if (p.estado === nuevo) { await client.query('COMMIT'); return res.json({ completado: true, estado: nuevo }); }
-    if (!TRANSICIONES[p.estado].includes(nuevo)) throw new HttpError(400, `No se puede pasar de "${p.estado}" a "${nuevo}".`);
+    const estadoFinal = nuevo === null ? p.estado : nuevo;
+    if (estadoFinal !== p.estado && !TRANSICIONES[p.estado].includes(estadoFinal)) {
+      throw new HttpError(400, `No se puede pasar de "${p.estado}" a "${estadoFinal}".`);
+    }
 
     let acreditado = p.cashback_acreditado;
     let devueltos = p.puntos_devueltos;
-
-    if (p.user_id) {
-      const { rows: [perf] } = await client.query(
-        'SELECT puntos FROM tienda_perfiles WHERE user_id = $1 FOR UPDATE', [p.user_id]);
+    if (estadoFinal !== p.estado && p.user_id) {
+      const { rows: [perf] } = await client.query('SELECT puntos FROM tienda_perfiles WHERE user_id = $1 FOR UPDATE', [p.user_id]);
       let saldo = perf ? Number(perf.puntos) : 0;
-
-      if ((nuevo === 'pagado' || nuevo === 'entregado') && !acreditado && Number(p.cashback) > 0 && perf) {
-        const monto = Number(p.cashback);
-        saldo = r2(saldo + monto);
+      if ((estadoFinal === 'pagado' || estadoFinal === 'entregado') && !acreditado && Number(p.cashback) > 0 && perf) {
+        const monto = Number(p.cashback); saldo = r2(saldo + monto);
         await client.query('UPDATE tienda_perfiles SET puntos = $1 WHERE user_id = $2', [saldo, p.user_id]);
         await client.query(`INSERT INTO tienda_puntos_mov (user_id, pedido_id, tipo, monto) VALUES ($1,$2,'ganado',$3)`, [p.user_id, p.id, monto]);
         acreditado = true;
       }
-      if (nuevo === 'cancelado') {
-        if (acreditado && perf) { // quitar el cashback ya entregado (hasta donde alcance el saldo)
+      if (estadoFinal === 'cancelado') {
+        if (acreditado && perf) {
           const quitar = r2(Math.min(Number(p.cashback), saldo));
           if (quitar > 0) {
             saldo = r2(saldo - quitar);
@@ -842,30 +928,30 @@ app.patch('/api/admin/pedidos/:id', requiereAdmin, ah(async (req, res) => {
           }
           acreditado = false;
         }
-        if (!devueltos && Number(p.puntos_usados) > 0 && perf) { // devolver los puntos que usó como descuento
-          const monto = Number(p.puntos_usados);
-          saldo = r2(saldo + monto);
+        if (!devueltos && Number(p.puntos_usados) > 0 && perf) {
+          const monto = Number(p.puntos_usados); saldo = r2(saldo + monto);
           await client.query('UPDATE tienda_perfiles SET puntos = $1 WHERE user_id = $2', [saldo, p.user_id]);
           await client.query(`INSERT INTO tienda_puntos_mov (user_id, pedido_id, tipo, monto) VALUES ($1,$2,'devolucion',$3)`, [p.user_id, p.id, monto]);
           devueltos = true;
         }
       }
     }
-    if (nuevo === 'cancelado' && p.promo_codigo) {
-      // Al cancelar se libera el cupo consumido por el cupón de ese pedido.
+    if (estadoFinal === 'cancelado' && p.estado !== 'cancelado' && p.promo_codigo) {
       await client.query('UPDATE tienda_promociones SET usos = GREATEST(0, usos - 1) WHERE codigo = $1', [p.promo_codigo]);
     }
-    await client.query(
-      'UPDATE tienda_pedidos SET estado = $1, cashback_acreditado = $2, puntos_devueltos = $3 WHERE id = $4',
-      [nuevo, acreditado, devueltos, id]);
+    const sets = ['estado = $1', 'cashback_acreditado = $2', 'puntos_devueltos = $3'];
+    const vals = [estadoFinal, acreditado, devueltos];
+    for (const [col, val] of Object.entries(cambios)) {
+      vals.push(val); sets.push(`${col} = $${vals.length}${col === 'imagenes' ? '::jsonb' : ''}`);
+    }
+    vals.push(id);
+    await client.query(`UPDATE tienda_pedidos SET ${sets.join(', ')} WHERE id = $${vals.length}`, vals);
     await client.query('COMMIT');
-    res.json({ completado: true, estado: nuevo });
+    res.json({ completado: true, estado: estadoFinal });
   } catch (e) {
     await client.query('ROLLBACK').catch(() => {});
     throw e;
-  } finally {
-    client.release();
-  }
+  } finally { client.release(); }
 }));
 
 // ---------- Manejo de errores ----------

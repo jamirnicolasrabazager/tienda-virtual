@@ -1,11 +1,11 @@
 {
   "name": "productos-en-linea",
-  "version": "2.0.0",
-  "description": "Tienda virtual con carrito, pedidos por WhatsApp, cashback y panel admin con Supabase Auth",
+  "version": "2.1.0",
+  "description": "Tienda virtual JG con catálogo, pedidos, seguimiento por perfil, panel administrativo, promociones por fechas y galería de imágenes.",
   "main": "api/index.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env api/index.js",
-    "check": "node --check api/index.js && node scripts/check-inline.js"
+    "check": "node --check api/index.js && node --check scripts/check-inline.js && node scripts/check-inline.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
