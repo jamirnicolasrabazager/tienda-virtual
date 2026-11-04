@@ -301,19 +301,28 @@
     .tracking-result:empty { display:none; }
     .promo-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
     .promo-form-grid .form-control { margin:0; }
-    .stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:14px 0; }
+    .stats-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:14px 0; }
     .stat-card { padding:16px; border:1px solid var(--border); border-radius:14px; background:#fff; }
     .stat-card span { display:block; color:var(--muted); font-size:12px; }
     .stat-card strong { display:block; margin-top:5px; font-size:22px; color:var(--ink); }
     .sales-chart { display:flex; align-items:flex-end; gap:10px; min-height:145px; padding:15px; border:1px solid var(--border); border-radius:14px; background:#fff; }
     .sales-day { flex:1; min-width:0; text-align:center; font-size:11px; color:var(--muted); }
     .sales-bar-wrap { display:flex; align-items:flex-end; justify-content:center; height:100px; margin-bottom:7px; }
-    .sales-bar { width:min(34px,75%); min-height:3px; border-radius:7px 7px 2px 2px; background:linear-gradient(180deg,#8051c8,var(--primary)); }
+    .sales-bar { width:14px; min-height:2px; border-radius:7px 7px 2px 2px; background:linear-gradient(180deg,#8051c8,var(--primary)); }
+    .sales-bar.bruta { background:linear-gradient(180deg,#8b74ac,#5b3a80); }
+    .sales-bar.neta { background:linear-gradient(180deg,#39a879,#1f7a4d); }
+    .sales-legend { display:flex; flex-wrap:wrap; gap:16px; margin:8px 0 2px; color:var(--muted); font-size:12px; }
+    .sales-legend span { display:inline-flex; align-items:center; gap:6px; }
+    .sales-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; }
+    .stock-editor-table input { min-width:90px; max-width:120px; margin:0; }
+    .stock-editor-table td { vertical-align:middle; }
+    .stock-hint { padding:12px 14px; border-radius:10px; background:var(--primary-soft); color:var(--primary-dark); font-size:13px; margin:12px 0; }
     .coupon-row { display:grid; grid-template-columns:1fr auto; gap:8px; margin:14px 0; }
     .coupon-message { font-size:12px; margin-top:5px; }
     .coupon-message.ok { color:var(--success); }
     .coupon-message.error { color:var(--danger); }
     .promo-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    @media (max-width:1000px) { .stats-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media (max-width:860px) { .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (max-width:560px) {
       .catalog-tools { grid-template-columns:1fr; }
@@ -541,6 +550,24 @@
         </div>
       </div>
 
+      <!-- PESTAÑA: STOCK POR PRODUCTO, TALLA Y COLOR -->
+      <div class="tab-panel" id="tab-stock">
+        <div class="admin-box">
+          <h3>📦 Control de stock y costo por variante</h3>
+          <p style="color:var(--muted);font-size:13px;">Registra las unidades disponibles de cada combinación de talla y color, junto con el costo real que pagas por cada chaqueta. El inventario se descuenta una sola vez al confirmar el pago o la venta; marcar después el pedido como entregado no vuelve a descontar unidades. Si cancelas una venta ya confirmada, las unidades se reintegran.</p>
+          <div class="promo-form-grid" style="max-width:760px;">
+            <div><label for="stock-producto">Producto</label><select id="stock-producto" class="form-control" onchange="seleccionarProductoStock()"></select></div>
+            <div><label>Estado del control</label><div id="stock-estado-producto" class="caja-info" style="margin:0;">Selecciona un producto.</div></div>
+          </div>
+          <div id="stock-editor" style="margin-top:18px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+            <button type="button" class="btn" id="btn-guardar-stock" onclick="guardarStockProducto()">Guardar stock y costos</button>
+            <button type="button" class="btn btn-secondary" onclick="cargarStockAdmin()">Actualizar datos</button>
+          </div>
+          <div id="contenido-stock" class="tabla-wrap" style="margin-top:22px;"></div>
+        </div>
+      </div>
+
       <!-- PESTAÑA: PERFILES -->
       <div class="tab-panel" id="tab-perfiles">
         <div class="admin-box">
@@ -579,6 +606,7 @@
             <div><label for="promo-max-usos">Límite de usos (opcional)</label><input id="promo-max-usos" class="form-control" type="number" min="1" step="1" placeholder="Sin límite"></div>
             <div><label for="promo-inicia">Válido desde (opcional)</label><input id="promo-inicia" class="form-control" type="datetime-local"></div>
             <div><label for="promo-vence">Válido hasta / vencimiento (opcional)</label><input id="promo-vence" class="form-control" type="datetime-local"></div>
+            <div><label for="promo-publica">Visibilidad del código</label><select id="promo-publica" class="form-control"><option value="true">Público: aparece en la tienda</option><option value="false">Privado: solo quien conozca el código</option></select></div>
           </div>
           <button class="btn" style="margin-top:15px;" onclick="crearPromocion()">Crear promoción</button>
         </div>
@@ -828,6 +856,9 @@
     let vistaActual = 'publica';
     let modoAuth = 'login';
     let authParaAdmin = false;
+    let stockAdminRows = [];
+    let variantesStockActuales = [];
+    let productoStockActualId = null;
 
     // ---------- Comunicación con la API (renueva la sesión si el token venció) ----------
     async function refrescarSesion() {
@@ -1304,24 +1335,35 @@
       return numeroWhatsApp(cacheConfig.cfg_whatsapp || '62323719') || '59162323719';
     }
     function ticketTexto(ped) {
-      const L = [`ORDEN DE PEDIDO: #${ped.codigo}`, '----------------------------------'];
-      ped.items.forEach(i => {
-        const v = [i.talla ? 'Talla ' + i.talla : '', i.color ? 'Color ' + i.color : ''].filter(Boolean).join(' | ');
-        L.push(`${i.cantidad} x ${i.nombre}${v ? ' (' + v + ')' : ''}`);
-        L.push(`   ${bs(i.precio)} c/u = ${bs(i.subtotal)}`);
+      const fechaPedido = ped.creado_en ? new Date(ped.creado_en).toLocaleString('es-BO', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString('es-BO');
+      const L = [
+        '🛍️ JG TIENDA DIGITAL',
+        `COMPROBANTE DE PEDIDO · ${ped.codigo}`,
+        `Fecha: ${fechaPedido}`,
+        '━━━━━━━━━━━━━━━━━━━━'
+      ];
+      (ped.items || []).forEach((i, idx) => {
+        const detalles = [i.talla ? `Talla: ${i.talla}` : '', i.color ? `Color: ${i.color}` : ''].filter(Boolean).join(' · ');
+        L.push(`${idx + 1}. ${i.nombre}`);
+        if (detalles) L.push(`   ${detalles}`);
+        L.push(`   ${i.cantidad} × ${bs(i.precio)} = ${bs(i.subtotal)}`);
       });
-      L.push('----------------------------------');
+      L.push('━━━━━━━━━━━━━━━━━━━━');
       L.push(`Subtotal: ${bs(ped.subtotal)}`);
-      if (ped.descuento_promo > 0) L.push(`Promoción ${ped.promo_codigo}: -${bs(ped.descuento_promo)}`);
-      if (ped.puntos_usados > 0) L.push(`Descuento por puntos: -${bs(ped.puntos_usados)}`);
+      if (num(ped.descuento_promo) > 0) L.push(`Cupón ${ped.promo_codigo || ''}: −${bs(ped.descuento_promo)}`);
+      if (num(ped.puntos_usados) > 0) L.push(`Puntos aplicados: −${bs(ped.puntos_usados)}`);
       L.push(`TOTAL A PAGAR: ${bs(ped.total)}`);
+      if (num(ped.cashback) > 0) L.push(`⭐ Cashback estimado: ${bs(ped.cashback)} en puntos tras confirmar el pago`);
+      L.push('━━━━━━━━━━━━━━━━━━━━');
+      L.push('Estado: Por confirmar pago');
       return L.join('\n');
     }
     function mensajeWhatsApp(ped) {
-      const tel = ped.cliente.telefono.replace('+591', '+591 ');
-      let m = `Hola, quiero concretar mi pedido:\n\n${ticketTexto(ped)}\n\nCliente: ${ped.cliente.nombre}\nWhatsApp: ${tel}`;
-      if (ped.cliente.nota) m += `\nEntrega/Nota: ${ped.cliente.nota}`;
-      m += ped.referencia_pago ? `\nPago por QR/transferencia. Ref.: ${ped.referencia_pago}` : '\nPago por QR/transferencia (enviaré el comprobante).';
+      const tel = String(ped.cliente.telefono || '').replace('+591', '+591 ');
+      let m = `¡Hola, equipo de JG Tienda Digital! 👋\nQuiero confirmar mi compra. Les comparto el detalle de mi pedido:\n\n${ticketTexto(ped)}\n\n👤 DATOS DEL CLIENTE\nNombre: ${ped.cliente.nombre}\nWhatsApp: ${tel}`;
+      if (ped.cliente.nota) m += `\n📍 Indicaciones de entrega: ${ped.cliente.nota}`;
+      m += ped.referencia_pago ? `\n💳 Referencia de pago: ${ped.referencia_pago}` : '\n💳 Realizaré el pago mediante QR/transferencia y adjuntaré el comprobante en este chat.';
+      m += '\n\nPor favor, confirmen la recepción de mi pedido y los siguientes pasos. ¡Muchas gracias!';
       return m;
     }
 
@@ -1848,6 +1890,97 @@
       } catch (e) { alert(e.message); }
     }
 
+    // ---------- Gestión de stock por talla y color ----------
+    function combinacionesStock(producto, existentes) {
+      const tallas = opcionesDesdeTexto(producto.tallas, 'talla');
+      const colores = opcionesDesdeTexto(producto.colores, 'color');
+      const listaTallas = tallas.length ? tallas : [''];
+      const listaColores = colores.length ? colores : [''];
+      const mapa = new Map();
+      (existentes || []).forEach(v => mapa.set(`${v.talla || ''}|${v.color || ''}`, {
+        talla: v.talla || '', color: v.color || '', cantidad: num(v.cantidad), costo_unitario: num(v.costo_unitario)
+      }));
+      listaTallas.forEach(t => listaColores.forEach(c => {
+        const key = `${t}|${c}`;
+        if (!mapa.has(key)) mapa.set(key, { talla: t, color: c, cantidad: 0, costo_unitario: 0 });
+      }));
+      return [...mapa.values()].sort((a, b) => (a.talla || '').localeCompare(b.talla || '', 'es') || (a.color || '').localeCompare(b.color || '', 'es'));
+    }
+    async function cargarStockAdmin() {
+      const select = $('stock-producto');
+      const conservar = productoStockActualId || Number(select.value) || null;
+      $('stock-editor').innerHTML = '<p class="drawer-muted">Cargando inventario...</p>';
+      try {
+        stockAdminRows = await apiFetch('/api/admin/stock');
+        if (!stockAdminRows.length) {
+          select.innerHTML = '<option value="">No hay productos publicados</option>';
+          $('stock-editor').innerHTML = '<p class="drawer-muted">Publica primero un producto en el catálogo para gestionar su stock.</p>';
+          $('stock-estado-producto').innerText = 'Sin productos';
+          $('contenido-stock').innerHTML = '';
+          return;
+        }
+        select.innerHTML = stockAdminRows.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+        const id = stockAdminRows.some(p => Number(p.id) === Number(conservar)) ? Number(conservar) : Number(stockAdminRows[0].id);
+        select.value = String(id); productoStockActualId = id;
+        seleccionarProductoStock();
+        renderResumenStockGlobal();
+      } catch (e) {
+        $('stock-editor').innerHTML = `<p class="coupon-message error">${esc(e.message)}</p>`;
+      }
+    }
+    function seleccionarProductoStock() {
+      const id = Number($('stock-producto').value);
+      const p = stockAdminRows.find(x => Number(x.id) === id);
+      productoStockActualId = p ? id : null;
+      if (!p) { $('stock-editor').innerHTML = ''; return; }
+      variantesStockActuales = combinacionesStock(p, p.variantes || []);
+      $('stock-estado-producto').innerHTML = p.stock_controlado
+        ? '<span class="badge pagado">Control de stock activo</span>'
+        : '<span class="badge pendiente">Todavía no se controla stock</span>';
+      renderEditorStock();
+    }
+    function renderEditorStock() {
+      const p = stockAdminRows.find(x => Number(x.id) === Number(productoStockActualId));
+      if (!p) return;
+      const total = variantesStockActuales.reduce((s, v) => s + num(v.cantidad), 0);
+      $('stock-editor').innerHTML = `
+        <div class="stock-hint">Configura cada combinación disponible. El costo unitario se guarda para calcular automáticamente el costo de ventas y tus ganancias. Un stock de 0 significa que no hay unidades disponibles de esa variante.</div>
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0;">
+          <strong>${esc(p.nombre)}</strong><span class="badge">${total} unidades registradas</span>
+        </div>
+        <div class="tabla-wrap"><table class="tabla stock-editor-table"><thead><tr><th>Talla</th><th>Color</th><th>Unidades disponibles</th><th>Costo por unidad (Bs.)</th></tr></thead><tbody>
+          ${variantesStockActuales.map((v, i) => `<tr><td>${esc(v.talla || 'Única / sin talla')}</td><td>${esc(v.color || 'Único / sin color')}</td><td><input class="form-control" type="number" min="0" max="100000" step="1" id="stock-cantidad-${i}" value="${num(v.cantidad)}"></td><td><input class="form-control" type="number" min="0" step="0.01" id="stock-costo-${i}" value="${num(v.costo_unitario).toFixed(2)}"></td></tr>`).join('')}
+        </tbody></table></div>`;
+    }
+    function renderResumenStockGlobal() {
+      const filas = stockAdminRows.map(p => {
+        const total = (p.variantes || []).reduce((s, v) => s + num(v.cantidad), 0);
+        const variantes = (p.variantes || []).length;
+        return `<tr><td>${esc(p.nombre)}</td><td>${p.stock_controlado ? '<span class="badge pagado">Activo</span>' : '<span class="badge pendiente">Sin configurar</span>'}</td><td>${variantes}</td><td><strong>${total}</strong></td></tr>`;
+      });
+      $('contenido-stock').innerHTML = `<h4>Resumen de inventario por producto</h4>${tabla(['Producto','Control','Variantes','Unidades totales'], filas)}`;
+    }
+    async function guardarStockProducto() {
+      const p = stockAdminRows.find(x => Number(x.id) === Number(productoStockActualId));
+      if (!p) return;
+      const btn = $('btn-guardar-stock'); btn.disabled = true; btn.textContent = 'Guardando stock...';
+      try {
+        const variantes = variantesStockActuales.map((v, i) => ({
+          talla: v.talla, color: v.color,
+          cantidad: $('stock-cantidad-' + i).value,
+          costo_unitario: $('stock-costo-' + i).value
+        }));
+        const d = await apiFetch('/api/admin/stock/' + p.id, { method: 'PUT', body: { variantes } });
+        p.stock_controlado = d.stock_controlado; p.variantes = d.variantes;
+        variantesStockActuales = combinacionesStock(p, p.variantes);
+        $('stock-estado-producto').innerHTML = d.stock_controlado
+          ? '<span class="badge pagado">Control de stock activo</span>'
+          : '<span class="badge pendiente">Todavía no se controla stock</span>';
+        renderEditorStock(); renderResumenStockGlobal(); toast('Stock y costos guardados correctamente.');
+      } catch (e) { alert(e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Guardar stock y costos'; }
+    }
+
     // ----- Pestañas del panel -----
     function cambiarTabAdmin(tab) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
@@ -1861,26 +1994,34 @@
     }
     async function renderEstadisticasAdmin() {
       const d = await apiFetch('/api/admin/estadisticas');
-      const max = Math.max(1, ...(d.ventas_por_dia || []).map(x => num(x.ingresos)));
       const cards = [
-        ['Ingresos confirmados', bs(d.ingresos)], ['Pedidos pendientes', d.pendientes],
-        ['Pedidos confirmados', d.confirmados], ['Ticket promedio', bs(d.ticket_promedio)]
+        ['Ingresos cobrados', bs(d.ingresos)], ['Costo de chaquetas vendidas', bs(d.costo_productos)],
+        ['Ganancia bruta', bs(d.ganancia_bruta)], ['Cashback reconocido', bs(d.cashback)],
+        ['Ganancia neta', bs(d.ganancia_neta)]
       ];
-      const chart = (d.ventas_por_dia || []).map(x => {
-        const alto = Math.max(3, Math.round(num(x.ingresos) / max * 100));
+      const dias = d.ventas_por_dia || [];
+      const max = Math.max(1, ...dias.flatMap(x => [num(x.ganancia_bruta), num(x.ganancia_neta), 0]));
+      const chart = dias.map(x => {
+        const bruta = Math.max(0, num(x.ganancia_bruta));
+        const neta = Math.max(0, num(x.ganancia_neta));
+        const altoBruta = Math.max(2, Math.round(bruta / max * 100));
+        const altoNeta = Math.max(2, Math.round(neta / max * 100));
         const dia = new Date(`${x.fecha}T12:00:00`).toLocaleDateString('es-BO', { weekday: 'short' });
-        return `<div class="sales-day" title="${esc(x.fecha)}: ${bs(x.ingresos)}"><div class="sales-bar-wrap"><div class="sales-bar" style="height:${alto}%;"></div></div><strong>${esc(dia)}</strong><div>${num(x.ingresos).toFixed(0)}</div></div>`;
+        return `<div class="sales-day" title="${esc(x.fecha)} · Bruta: ${bs(bruta)} · Neta: ${bs(neta)}"><div class="sales-bar-wrap" style="gap:3px;"><div class="sales-bar bruta" style="height:${altoBruta}%;" aria-label="Ganancia bruta"></div><div class="sales-bar neta" style="height:${altoNeta}%;" aria-label="Ganancia neta"></div></div><strong>${esc(dia)}</strong><div style="font-size:10px;">B ${bruta.toFixed(0)} · N ${neta.toFixed(0)}</div></div>`;
       }).join('');
-      $('resumen-compras').innerHTML = `<div class="stats-grid">${cards.map(c => `<div class="stat-card"><span>${esc(c[0])}</span><strong>${esc(c[1])}</strong></div>`).join('')}</div><div style="font-weight:700;margin:12px 0 8px;">Ingresos confirmados · últimos 7 días</div><div class="sales-chart">${chart}</div><p style="font-size:12px;color:var(--muted);margin-bottom:0;">${esc(d.pedidos)} pedidos registrados · ${esc(d.cancelados)} cancelados.</p>`;
+      const avisoCostos = num(d.pedidos_sin_costo) > 0
+        ? `<p class="coupon-message error">Hay ${esc(d.pedidos_sin_costo)} pedido(s) confirmado(s) sin costo histórico completo. Las ganancias solo incluyen pedidos con todos sus costos registrados. Configura el stock y el costo antes de confirmar nuevas ventas.</p>`
+        : '<p class="coupon-message ok">Los costos de los productos confirmados están registrados.</p>';
+      $('resumen-compras').innerHTML = `<div class="stats-grid">${cards.map(c => `<div class="stat-card"><span>${esc(c[0])}</span><strong>${esc(c[1])}</strong></div>`).join('')}</div><div style="font-weight:700;margin:12px 0 8px;">Ganancia bruta y neta · últimos 7 días</div><div class="sales-chart">${chart}</div><div class="sales-legend"><span><i style="background:#5b3a80;"></i> Ganancia bruta</span><span><i style="background:#1f7a4d;"></i> Ganancia neta</span></div><p style="font-size:12px;color:var(--muted);margin:8px 0 0;">${esc(d.pedidos)} pedidos registrados · ${esc(d.pendientes)} pendientes · ${esc(d.cancelados)} cancelados · Ticket promedio: ${bs(d.ticket_promedio)}.</p>${avisoCostos}<p style="font-size:12px;color:var(--muted);margin-bottom:0;">Cálculo: ganancia bruta = subtotal − costo de chaquetas. Ganancia neta = total cobrado − cashback − costo de chaquetas. El cupón ya está descontado en el total cobrado.</p>`;
     }
 
     async function cargarPromocionesAdmin() {
       const rows = await apiFetch('/api/admin/promociones');
-      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Mínimo', 'Usos', 'Desde', 'Vence', 'Estado', 'Acciones'], rows.map(p => {
+      $('contenido-promociones').innerHTML = tabla(['Código', 'Descripción', 'Descuento', 'Mínimo', 'Usos', 'Desde', 'Vence', 'Visibilidad', 'Estado', 'Acciones'], rows.map(p => {
         const valor = p.tipo === 'porcentaje' ? `${num(p.valor)}%` : bs(p.valor);
         const usos = `${p.usos}${p.max_usos ? ` / ${p.max_usos}` : ' / ∞'}`;
-        const acciones = `<div class="promo-actions"><button class="btn btn-secondary" onclick="alternarPromocion(${p.id}, ${!p.activo})">${p.activo ? 'Desactivar' : 'Activar'}</button><button class="btn btn-danger" onclick="eliminarPromocion(${p.id})">Eliminar</button></div>`;
-        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${bs(p.minimo)}</td><td>${esc(usos)}</td><td>${esc(p.inicia_en ? fecha(p.inicia_en) : 'Inmediata')}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
+        const acciones = `<div class="promo-actions"><button class="btn btn-secondary" onclick="alternarPromocion(${p.id}, ${!p.activo})">${p.activo ? 'Desactivar' : 'Activar'}</button><button class="btn btn-secondary" onclick="alternarVisibilidadPromocion(${p.id}, ${p.publica === false})">${p.publica === false ? 'Hacer pública' : 'Hacer privada'}</button><button class="btn btn-danger" onclick="eliminarPromocion(${p.id})">Eliminar</button></div>`;
+        return `<tr><td><strong>${esc(p.codigo)}</strong></td><td>${esc(p.descripcion || '—')}</td><td>${esc(valor)}</td><td>${bs(p.minimo)}</td><td>${esc(usos)}</td><td>${esc(p.inicia_en ? fecha(p.inicia_en) : 'Inmediata')}</td><td>${esc(p.vence_en ? fecha(p.vence_en) : 'Sin vencimiento')}</td><td><span class="badge ${p.publica === false ? 'pendiente' : 'pagado'}">${p.publica === false ? 'Privada' : 'Pública'}</span></td><td><span class="badge ${p.activo ? 'pagado' : 'cancelado'}">${p.activo ? 'Activa' : 'Inactiva'}</span></td><td>${acciones}</td></tr>`;
       }));
     }
     async function crearPromocion() {
@@ -1896,17 +2037,21 @@
           tipo: $('promo-tipo').value, valor: $('promo-valor').value, minimo: $('promo-minimo').value,
           max_usos: $('promo-max-usos').value,
           inicia_en: fechaIso($('promo-inicia').value),
-          vence_en: fechaIso($('promo-vence').value)
+          vence_en: fechaIso($('promo-vence').value), publica: $('promo-publica').value === 'true'
         };
         await apiFetch('/api/admin/promociones', { method: 'POST', body });
         ['promo-codigo','promo-descripcion','promo-valor','promo-max-usos','promo-inicia','promo-vence'].forEach(id => { $(id).value = ''; });
-        $('promo-minimo').value = '0';
+        $('promo-minimo').value = '0'; $('promo-publica').value = 'true';
         toast('Promoción creada correctamente.');
         await cargarPromocionesAdmin();
       } catch (e) { alert(e.message); }
     }
     async function alternarPromocion(id, activo) {
       try { await apiFetch(`/api/admin/promociones/${id}`, { method: 'PUT', body: { activo } }); await cargarPromocionesAdmin(); }
+      catch (e) { alert(e.message); }
+    }
+    async function alternarVisibilidadPromocion(id, publica) {
+      try { await apiFetch(`/api/admin/promociones/${id}`, { method: 'PUT', body: { publica } }); await cargarPromocionesAdmin(); toast(publica ? 'La promoción ahora es pública.' : 'La promoción ahora es privada.'); }
       catch (e) { alert(e.message); }
     }
     async function eliminarPromocion(id) {
@@ -1919,7 +2064,9 @@
       const destino = $('contenido-' + tab);
       destino.innerHTML = '<p>Cargando...</p>';
       try {
-        if (tab === 'promociones') {
+        if (tab === 'stock') {
+          await cargarStockAdmin();
+        } else if (tab === 'promociones') {
           await cargarPromocionesAdmin();
         } else if (tab === 'perfiles') {
           const rows = await apiFetch('/api/admin/perfiles');

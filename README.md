@@ -1,11 +1,11 @@
 # Tienda virtual · JG
 
-Tienda virtual en español con catálogo, carrito, pedidos por WhatsApp, autenticación Supabase, puntos/cashback, panel administrativo, promociones y seguimiento de pedidos.
+Tienda virtual en español con catálogo, carrito, pedidos por WhatsApp, autenticación Supabase, puntos/cashback, panel administrativo, stock por talla/color, promociones públicas y privadas, y analítica de ganancias.
 
 ## Tecnologías
 
 - Node.js 22 y Express 4 para la API.
-- PostgreSQL de Supabase para productos, configuración, perfiles, pedidos, movimientos y promociones.
+- PostgreSQL de Supabase para productos, configuración, perfiles, pedidos, movimientos, promociones e inventario por variante.
 - Supabase Auth para registro e inicio de sesión.
 - Supabase Storage para imágenes de productos y QR.
 - HTML, CSS y JavaScript sin proceso de compilación para el frontend.
@@ -83,3 +83,16 @@ Los pedidos hechos **con sesión iniciada** quedan asociados al perfil y aparece
 ## Verificaciones realizadas para esta entrega
 
 Ejecuta `npm run check` para verificar sintaxis de la API y del frontend, IDs duplicados y referencias literales a elementos HTML. Estas verificaciones locales no sustituyen una prueba de integración con las credenciales reales de Supabase/PostgreSQL ni una implementación de prueba en Vercel.
+
+
+## Inventario y cálculo de ganancias (v2.2)
+
+- La pestaña **Stock / inventario** permite registrar unidades disponibles y costo unitario para cada combinación de producto, talla y color.
+- Antes de confirmar una venta nueva, registra el stock y costo de todos sus productos en esta pestaña; el servidor no permite confirmar un artículo sin control de inventario configurado. Al pasar un pedido de **pendiente** a **pagado** (o directamente a **entregado**), el servidor bloquea las filas de inventario necesarias, comprueba existencias, registra el costo histórico de cada línea y descuenta las unidades en una transacción. Cambiar después de **pagado** a **entregado** no descuenta otra vez.
+- Si se cancela un pedido que ya había descontado inventario, las unidades se reintegran una sola vez. Si no hay existencias suficientes, la confirmación se rechaza y la transacción se revierte.
+- Configura el stock físico actual de cada variante antes de confirmar nuevas ventas. Los pedidos ya completados antes de activar el inventario no modifican el stock retroactivamente. Los pedidos históricos sin costo guardado se excluyen de las ganancias calculadas y se muestran como pedidos sin costo completo.
+- **Ganancia bruta** = subtotal del pedido − costo histórico de los productos. **Ganancia neta** = total cobrado (ya descuenta cupones y puntos utilizados) − cashback concedido − costo histórico de los productos. No incluye comisiones bancarias, impuestos ni otros gastos externos que no estén registrados en el sistema.
+- Los códigos promocionales pueden ser **públicos** (aparecen en la pestaña de promociones de la tienda) o **privados** (no se publican; se aplican únicamente cuando el cliente conoce e introduce el código). Ambos siguen sujetos a vigencia, compra mínima y límite de usos.
+- El texto para WhatsApp ahora incluye un comprobante organizado con código, fecha, variantes, importes, descuentos, total y datos del cliente.
+
+La migración v2.2 añade `tienda_productos.stock_controlado`, la tabla `tienda_stock_variantes`, los indicadores `tienda_pedidos.stock_deducido` / `stock_reintegrado` y `tienda_promociones.publica`. Se ejecuta automáticamente al iniciar la API y no elimina productos, pedidos, clientes, promociones ni configuraciones existentes.

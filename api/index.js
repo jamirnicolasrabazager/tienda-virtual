@@ -143,6 +143,18 @@ async function inicializarBD() {
   await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS cashback_pct NUMERIC NOT NULL DEFAULT 0`);
   // Varias imágenes por producto: arreglo JSON de URLs (la primera es la principal; imagen_url se conserva como respaldo)
   await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS imagenes JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS stock_controlado BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tienda_stock_variantes (
+      id SERIAL PRIMARY KEY,
+      producto_id INTEGER NOT NULL REFERENCES tienda_productos(id) ON DELETE CASCADE,
+      talla VARCHAR(50) NOT NULL DEFAULT '',
+      color VARCHAR(50) NOT NULL DEFAULT '',
+      cantidad INTEGER NOT NULL DEFAULT 0 CHECK (cantidad >= 0),
+      costo_unitario NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (costo_unitario >= 0),
+      actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (producto_id, talla, color)
+    )`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_config (
       clave VARCHAR(100) PRIMARY KEY,
@@ -189,6 +201,8 @@ async function inicializarBD() {
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS descuento_promo NUMERIC(12,2) NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS nota_admin TEXT NOT NULL DEFAULT ''`);
   await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS imagenes JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS stock_deducido BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`ALTER TABLE tienda_pedidos ADD COLUMN IF NOT EXISTS stock_reintegrado BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_promociones (
       id SERIAL PRIMARY KEY,
@@ -207,10 +221,11 @@ async function inicializarBD() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_mov_user ON tienda_puntos_mov(user_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_pedidos_codigo ON tienda_pedidos(codigo)`);
   await pool.query(`ALTER TABLE tienda_promociones ADD COLUMN IF NOT EXISTS inicia_en TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE tienda_promociones ADD COLUMN IF NOT EXISTS publica BOOLEAN NOT NULL DEFAULT true`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_promociones_activa ON tienda_promociones(activo, inicia_en, vence_en)`);
   // Seguridad: si la base es Supabase, estas tablas quedarían expuestas con la clave pública (anon).
   // Con RLS activado y sin políticas, solo este servidor (conexión directa) puede leerlas o escribirlas.
-  for (const t of ['tienda_productos', 'tienda_config', 'tienda_perfiles', 'tienda_pedidos', 'tienda_puntos_mov', 'tienda_promociones']) {
+  for (const t of ['tienda_productos', 'tienda_config', 'tienda_perfiles', 'tienda_pedidos', 'tienda_puntos_mov', 'tienda_promociones', 'tienda_stock_variantes']) {
     await pool.query(`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY`);
   }
 }
@@ -349,7 +364,7 @@ app.get('/api/health', ah(async (req, res) => {
   res.json({ ok: true, servicio: 'tienda-api' });
 }));
 app.get('/api/productos', ah(async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM tienda_productos ORDER BY id DESC');
+  const { rows } = await pool.query(`SELECT id, nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct, imagenes FROM tienda_productos ORDER BY id DESC`);
   res.json(rows);
 }));
 
@@ -521,7 +536,7 @@ app.get('/api/promociones', rateLimit({ max: 60, ventanaMs: 15 * 60 * 1000 }), a
            (inicia_en IS NULL OR inicia_en <= now()) AS disponible,
            CASE WHEN max_usos IS NULL THEN NULL ELSE GREATEST(0, max_usos - usos) END AS usos_restantes
       FROM tienda_promociones
-     WHERE activo = true
+     WHERE activo = true AND publica = true
        AND (vence_en IS NULL OR vence_en > now())
        AND (max_usos IS NULL OR usos < max_usos)
      ORDER BY vence_en ASC NULLS LAST, creado_en DESC LIMIT 100`);
@@ -529,11 +544,14 @@ app.get('/api/promociones', rateLimit({ max: 60, ventanaMs: 15 * 60 * 1000 }), a
 }));
 
 // ---------- Crear pedido (cliente invitado o con cuenta) ----------
+function itemsPublicos(items) {
+  return (Array.isArray(items) ? items : []).map(({ costo_unitario, costo_total, ...item }) => item);
+}
 function formatearPedido(p) {
   return {
     id: p.id, codigo: p.codigo, estado: p.estado, creado_en: p.creado_en,
     cliente: { nombre: p.cliente_nombre, telefono: p.cliente_telefono, nota: p.cliente_nota || '' },
-    items: p.items, subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
+    items: itemsPublicos(p.items), subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
     promo_codigo: p.promo_codigo || '', descuento_promo: Number(p.descuento_promo || 0),
     total: Number(p.total), cashback: Number(p.cashback), referencia_pago: p.referencia_pago || '',
     imagenes: Array.isArray(p.imagenes) ? p.imagenes : []
@@ -559,11 +577,12 @@ app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje
   // Los precios SIEMPRE se leen de la base de datos (nunca del navegador)
   const ids = itemsIn.map(i => idValido(i && i.id));
   const { rows: prods } = await pool.query(
-    'SELECT id, nombre, precio, tallas, colores, cashback_pct FROM tienda_productos WHERE id = ANY($1::int[])',
+    'SELECT id, nombre, precio, tallas, colores, cashback_pct, stock_controlado FROM tienda_productos WHERE id = ANY($1::int[])',
     [[...new Set(ids)]]
   );
   const mapa = new Map(prods.map(p => [p.id, p]));
   const lineas = [];
+  const cantidadesStock = new Map();
   let subtotal = 0;
   let cashbackBruto = 0;
   for (const it of itemsIn) {
@@ -583,9 +602,25 @@ app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje
     const sub = r2(precio * cant);
     subtotal += sub;
     cashbackBruto += precio * cant * (Number(p.cashback_pct) || 0) / 100;
+    if (p.stock_controlado) {
+      const key = `${p.id}|${talla}|${color}`;
+      const previo = cantidadesStock.get(key) || { producto_id: p.id, nombre: p.nombre, talla, color, cantidad: 0 };
+      previo.cantidad += cant; cantidadesStock.set(key, previo);
+    }
     lineas.push({ id: p.id, nombre: p.nombre, precio, cantidad: cant, talla, color, subtotal: sub });
   }
   subtotal = r2(subtotal);
+  // Prevalidación de existencias para avisar al cliente antes de generar el pedido.
+  // La cantidad se vuelve a comprobar con bloqueo al confirmar el pago.
+  for (const v of cantidadesStock.values()) {
+    const { rows: [stock] } = await pool.query(
+      'SELECT cantidad FROM tienda_stock_variantes WHERE producto_id = $1 AND talla = $2 AND color = $3',
+      [v.producto_id, v.talla, v.color]);
+    if (!stock || Number(stock.cantidad) < v.cantidad) {
+      const disponible = stock ? Number(stock.cantidad) : 0;
+      throw new HttpError(409, `Stock insuficiente para ${v.nombre} (${v.talla || 'Sin talla'} / ${v.color || 'Sin color'}). Disponible: ${disponible}.`);
+    }
+  }
 
   const client = await pool.connect();
   try {
@@ -665,7 +700,7 @@ app.get('/api/pedidos/seguimiento', rateLimit({ max: 20, ventanaMs: 15 * 60 * 10
        FROM tienda_pedidos WHERE codigo = $1`, [codigo]);
   if (!p || p.telefono_final !== telefono) throw new HttpError(404, 'No encontramos un pedido con esos datos. Verifica el código y el teléfono.');
   res.json({ codigo: p.codigo, estado: p.estado, creado_en: p.creado_en,
-    items: p.items, subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
+    items: itemsPublicos(p.items), subtotal: Number(p.subtotal), puntos_usados: Number(p.puntos_usados),
     promo_codigo: p.promo_codigo || '', descuento_promo: Number(p.descuento_promo || 0),
     total: Number(p.total), cashback: Number(p.cashback), imagenes: Array.isArray(p.imagenes) ? p.imagenes : [] });
 }));
@@ -768,6 +803,65 @@ app.post('/api/config', requiereAdmin, ah(async (req, res) => {
   res.json({ completado: true });
 }));
 
+// ---------- Inventario por producto, talla y color ----------
+app.get('/api/admin/stock', requiereAdmin, ah(async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT p.id, p.nombre, p.tallas, p.colores, p.stock_controlado,
+      COALESCE(json_agg(json_build_object(
+        'talla', s.talla, 'color', s.color, 'cantidad', s.cantidad,
+        'costo_unitario', s.costo_unitario, 'actualizado_en', s.actualizado_en
+      ) ORDER BY s.talla, s.color) FILTER (WHERE s.id IS NOT NULL), '[]'::json) AS variantes
+    FROM tienda_productos p
+    LEFT JOIN tienda_stock_variantes s ON s.producto_id = p.id
+    GROUP BY p.id ORDER BY p.nombre ASC`);
+  res.json(rows.map(p => ({ ...p, stock_controlado: !!p.stock_controlado, variantes: p.variantes || [] })));
+}));
+
+app.put('/api/admin/stock/:id', requiereAdmin, ah(async (req, res) => {
+  const id = idValido(req.params.id);
+  const variantes = Array.isArray(req.body && req.body.variantes) ? req.body.variantes : [];
+  if (variantes.length > 300) throw new HttpError(400, 'Demasiadas variantes para un solo producto.');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows: [producto] } = await client.query('SELECT * FROM tienda_productos WHERE id = $1 FOR UPDATE', [id]);
+    if (!producto) throw new HttpError(404, 'Producto no encontrado.');
+    const tallas = listaOpc(producto.tallas, 'talla');
+    const colores = listaOpc(producto.colores, 'color');
+    const { rows: antiguas } = await client.query('SELECT talla, color FROM tienda_stock_variantes WHERE producto_id = $1', [id]);
+    const clavesAntiguas = new Set(antiguas.map(v => `${String(v.talla || '').toLocaleLowerCase()}|${String(v.color || '').toLocaleLowerCase()}`));
+    const normalizadas = [];
+    const claves = new Set();
+    for (const v of variantes) {
+      const talla = str(v.talla, 50);
+      const color = str(v.color, 50);
+      const cantidad = Number(v.cantidad);
+      const costo = Number(v.costo_unitario);
+      const key = `${talla.toLocaleLowerCase()}|${color.toLocaleLowerCase()}`;
+      const varianteYaRegistrada = clavesAntiguas.has(key);
+      const tallaValida = varianteYaRegistrada || (!talla ? !tallas.length : tallas.includes(talla));
+      const colorValido = varianteYaRegistrada || (!color ? !colores.length : colores.includes(color));
+      if (!tallaValida) throw new HttpError(400, `Talla no válida para ${producto.nombre}.`);
+      if (!colorValido) throw new HttpError(400, `Color no válido para ${producto.nombre}.`);
+      if (!Number.isInteger(cantidad) || cantidad < 0 || cantidad > 100000) throw new HttpError(400, 'La cantidad debe ser un número entero entre 0 y 100000.');
+      if (!Number.isFinite(costo) || costo < 0 || costo > 10000000 || (cantidad > 0 && costo <= 0)) throw new HttpError(400, 'El costo unitario debe ser mayor que 0 cuando hay unidades en stock.');
+      if (claves.has(key)) throw new HttpError(400, 'No repitas combinaciones de talla y color.');
+      claves.add(key); normalizadas.push({ talla, color, cantidad, costo_unitario: r2(costo) });
+    }
+    await client.query('DELETE FROM tienda_stock_variantes WHERE producto_id = $1', [id]);
+    for (const v of normalizadas) {
+      await client.query(`INSERT INTO tienda_stock_variantes (producto_id, talla, color, cantidad, costo_unitario)
+        VALUES ($1,$2,$3,$4,$5)`, [id, v.talla, v.color, v.cantidad, v.costo_unitario]);
+    }
+    await client.query('UPDATE tienda_productos SET stock_controlado = $1 WHERE id = $2', [normalizadas.length > 0, id]);
+    await client.query('COMMIT');
+    res.json({ completado: true, stock_controlado: normalizadas.length > 0, variantes: normalizadas });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw e;
+  } finally { client.release(); }
+}));
+
 app.get('/api/admin/perfiles', requiereAdmin, ah(async (req, res) => {
   const { rows } = await pool.query(`
     SELECT pf.user_id, pf.email, pf.nombre, pf.telefono, pf.puntos, pf.creado_en,
@@ -806,20 +900,51 @@ app.get('/api/admin/puntos', requiereAdmin, ah(async (req, res) => {
 
 app.get('/api/admin/estadisticas', requiereAdmin, ah(async (req, res) => {
   const { rows: [resumen] } = await pool.query(`
+    WITH confirmados AS (
+      SELECT p.*,
+        COALESCE((SELECT SUM(NULLIF(item->>'costo_total','')::numeric)
+                    FROM jsonb_array_elements(p.items) AS item), 0) AS costo_productos,
+        EXISTS (SELECT 1 FROM jsonb_array_elements(p.items) AS item
+                 WHERE NOT (item ? 'costo_total') OR item->>'costo_total' IS NULL) AS costo_incompleto
+      FROM tienda_pedidos p
+    )
     SELECT COUNT(*)::int AS pedidos,
       COUNT(*) FILTER (WHERE estado = 'pendiente')::int AS pendientes,
       COUNT(*) FILTER (WHERE estado IN ('pagado','entregado'))::int AS confirmados,
       COUNT(*) FILTER (WHERE estado = 'cancelado')::int AS cancelados,
       COALESCE(SUM(total) FILTER (WHERE estado IN ('pagado','entregado')), 0) AS ingresos,
-      COALESCE(AVG(total) FILTER (WHERE estado IN ('pagado','entregado')), 0) AS ticket_promedio
-    FROM tienda_pedidos`);
+      COALESCE(AVG(total) FILTER (WHERE estado IN ('pagado','entregado')), 0) AS ticket_promedio,
+      COALESCE(SUM(subtotal - costo_productos) FILTER (WHERE NOT costo_incompleto), 0) AS ganancia_bruta,
+      COALESCE(SUM(total - cashback - costo_productos) FILTER (WHERE NOT costo_incompleto), 0) AS ganancia_neta,
+      COALESCE(SUM(costo_productos) FILTER (WHERE NOT costo_incompleto), 0) AS costo_productos,
+      COALESCE(SUM(cashback) FILTER (WHERE NOT costo_incompleto), 0) AS cashback,
+      COUNT(*) FILTER (WHERE estado IN ('pagado','entregado') AND costo_incompleto)::int AS pedidos_sin_costo
+    FROM confirmados`);
   const { rows: dias } = await pool.query(`
-    SELECT to_char(dia, 'YYYY-MM-DD') AS fecha, COALESCE(SUM(p.total), 0) AS ingresos
-      FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS serie(dia)
-      LEFT JOIN tienda_pedidos p ON p.creado_en::date = dia::date AND p.estado IN ('pagado','entregado')
-     GROUP BY dia ORDER BY dia`);
-  res.json({ ...resumen, ingresos: Number(resumen.ingresos), ticket_promedio: Number(resumen.ticket_promedio),
-    ventas_por_dia: dias.map(d => ({ fecha: d.fecha, ingresos: Number(d.ingresos) })) });
+    WITH confirmados AS (
+      SELECT p.*,
+        COALESCE((SELECT SUM(NULLIF(item->>'costo_total','')::numeric)
+                    FROM jsonb_array_elements(p.items) AS item), 0) AS costo_productos,
+        EXISTS (SELECT 1 FROM jsonb_array_elements(p.items) AS item
+                 WHERE NOT (item ? 'costo_total') OR item->>'costo_total' IS NULL) AS costo_incompleto
+      FROM tienda_pedidos p
+      WHERE p.estado IN ('pagado','entregado') AND p.creado_en::date >= CURRENT_DATE - INTERVAL '6 days'
+    )
+    SELECT to_char(dia, 'YYYY-MM-DD') AS fecha,
+      COALESCE(SUM(p.total), 0) AS ingresos,
+      COALESCE(SUM(p.subtotal - p.costo_productos) FILTER (WHERE NOT p.costo_incompleto), 0) AS ganancia_bruta,
+      COALESCE(SUM(p.total - p.cashback - p.costo_productos) FILTER (WHERE NOT p.costo_incompleto), 0) AS ganancia_neta
+    FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day') AS serie(dia)
+    LEFT JOIN confirmados p ON p.creado_en::date = dia::date
+    GROUP BY dia ORDER BY dia`);
+  res.json({
+    ...resumen,
+    ingresos: Number(resumen.ingresos), ticket_promedio: Number(resumen.ticket_promedio),
+    ganancia_bruta: Number(resumen.ganancia_bruta), ganancia_neta: Number(resumen.ganancia_neta),
+    costo_productos: Number(resumen.costo_productos), cashback: Number(resumen.cashback),
+    pedidos_sin_costo: Number(resumen.pedidos_sin_costo),
+    ventas_por_dia: dias.map(d => ({ fecha: d.fecha, ingresos: Number(d.ingresos), ganancia_bruta: Number(d.ganancia_bruta), ganancia_neta: Number(d.ganancia_neta) }))
+  });
 }));
 
 app.get('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
@@ -844,16 +969,17 @@ app.post('/api/admin/promociones', requiereAdmin, ah(async (req, res) => {
   if (inicia && vence && vence <= inicia) throw new HttpError(400, 'La fecha de vencimiento debe ser posterior a la fecha de inicio.');
   try {
     const { rows: [promo] } = await pool.query(
-      `INSERT INTO tienda_promociones (codigo, descripcion, tipo, valor, minimo, max_usos, activo, inicia_en, vence_en)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [codigo, descripcion, tipo, valor, minimo, maxUsos, b.activo !== false, inicia, vence]);
+      `INSERT INTO tienda_promociones (codigo, descripcion, tipo, valor, minimo, max_usos, activo, inicia_en, vence_en, publica)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [codigo, descripcion, tipo, valor, minimo, maxUsos, b.activo !== false, inicia, vence, b.publica !== false]);
     res.status(201).json(promo);
   } catch (e) { if (e.code === '23505') throw new HttpError(409, 'Ya existe una promoción con ese código.'); throw e; }
 }));
 app.put('/api/admin/promociones/:id', requiereAdmin, ah(async (req, res) => {
   const id = idValido(req.params.id);
-  const activo = req.body && req.body.activo === true;
-  const { rowCount } = await pool.query('UPDATE tienda_promociones SET activo = $1 WHERE id = $2', [activo, id]);
+  const activo = req.body && Object.prototype.hasOwnProperty.call(req.body, 'activo') ? req.body.activo === true : null;
+  const publica = req.body && Object.prototype.hasOwnProperty.call(req.body, 'publica') ? req.body.publica === true : null;
+  const { rowCount } = await pool.query('UPDATE tienda_promociones SET activo = COALESCE($1, activo), publica = COALESCE($2, publica) WHERE id = $3', [activo, publica, id]);
   if (!rowCount) throw new HttpError(404, 'Promoción no encontrada.');
   res.json({ completado: true, activo });
 }));
@@ -909,6 +1035,66 @@ app.patch('/api/admin/pedidos/:id', requiereAdmin, ah(async (req, res) => {
 
     let acreditado = p.cashback_acreditado;
     let devueltos = p.puntos_devueltos;
+    let itemsActualizados = Array.isArray(p.items) ? p.items.map(it => ({ ...it })) : [];
+    let stockDeducido = !!p.stock_deducido;
+    let stockReintegrado = !!p.stock_reintegrado;
+
+    // Se descuenta el inventario una sola vez cuando se confirma el pago/venta.
+    // El paso posterior a "entregado" no vuelve a descontar unidades.
+    if (estadoFinal !== p.estado && (estadoFinal === 'pagado' || estadoFinal === 'entregado') && !stockDeducido) {
+      for (const item of itemsActualizados) {
+        const { rows: [producto] } = await client.query(
+          'SELECT stock_controlado FROM tienda_productos WHERE id = $1 FOR SHARE', [idValido(item.id)]);
+        if (producto && !producto.stock_controlado) {
+          throw new HttpError(409, `Antes de confirmar ${item.nombre}, registra sus unidades y costo en la pestaña Stock / inventario.`);
+        }
+        if (producto && producto.stock_controlado) {
+          const { rows: [v] } = await client.query(
+            `SELECT cantidad, costo_unitario FROM tienda_stock_variantes
+              WHERE producto_id = $1 AND talla = $2 AND color = $3 FOR UPDATE`,
+            [idValido(item.id), str(item.talla, 50), str(item.color, 50)]);
+          if (!v) throw new HttpError(409, `No existe stock registrado para ${item.nombre} (${item.talla || 'Sin talla'} / ${item.color || 'Sin color'}).`);
+          if (Number(v.cantidad) < Number(item.cantidad)) {
+            throw new HttpError(409, `Stock insuficiente para ${item.nombre} (${item.talla || 'Sin talla'} / ${item.color || 'Sin color'}). Disponible: ${v.cantidad}.`);
+          }
+          const costoUnitario = Number(v.costo_unitario);
+          const costoTotal = r2(costoUnitario * Number(item.cantidad));
+          await client.query(`UPDATE tienda_stock_variantes SET cantidad = cantidad - $1, actualizado_en = now()
+            WHERE producto_id = $2 AND talla = $3 AND color = $4`,
+            [Number(item.cantidad), idValido(item.id), str(item.talla, 50), str(item.color, 50)]);
+          item.costo_unitario = costoUnitario;
+          item.costo_total = costoTotal;
+        } else {
+          item.costo_unitario = null;
+          item.costo_total = null;
+        }
+      }
+      stockDeducido = true;
+      stockReintegrado = false;
+    }
+
+    // Al cancelar una venta cuyo stock ya se había descontado, las unidades regresan al inventario.
+    if (estadoFinal === 'cancelado' && p.estado !== 'cancelado' && stockDeducido && !stockReintegrado) {
+      for (const item of itemsActualizados) {
+        if (item.costo_unitario !== null && item.costo_unitario !== undefined) {
+          const { rowCount: productoExiste } = await client.query('SELECT id FROM tienda_productos WHERE id = $1', [idValido(item.id)]);
+          if (!productoExiste) continue;
+          await client.query(`INSERT INTO tienda_stock_variantes
+              (producto_id, talla, color, cantidad, costo_unitario)
+            VALUES ($1,$2,$3,$4,$5)
+            ON CONFLICT (producto_id, talla, color) DO UPDATE
+              SET costo_unitario = CASE
+                    WHEN tienda_stock_variantes.cantidad + EXCLUDED.cantidad = 0 THEN EXCLUDED.costo_unitario
+                    ELSE round(((tienda_stock_variantes.cantidad * tienda_stock_variantes.costo_unitario) + (EXCLUDED.cantidad * EXCLUDED.costo_unitario)) / (tienda_stock_variantes.cantidad + EXCLUDED.cantidad), 2)
+                  END,
+                  cantidad = tienda_stock_variantes.cantidad + EXCLUDED.cantidad,
+                  actualizado_en = now()`,
+            [idValido(item.id), str(item.talla, 50), str(item.color, 50), Number(item.cantidad), Number(item.costo_unitario)]);
+        }
+      }
+      stockReintegrado = true;
+    }
+
     if (estadoFinal !== p.estado && p.user_id) {
       const { rows: [perf] } = await client.query('SELECT puntos FROM tienda_perfiles WHERE user_id = $1 FOR UPDATE', [p.user_id]);
       let saldo = perf ? Number(perf.puntos) : 0;
@@ -939,8 +1125,8 @@ app.patch('/api/admin/pedidos/:id', requiereAdmin, ah(async (req, res) => {
     if (estadoFinal === 'cancelado' && p.estado !== 'cancelado' && p.promo_codigo) {
       await client.query('UPDATE tienda_promociones SET usos = GREATEST(0, usos - 1) WHERE codigo = $1', [p.promo_codigo]);
     }
-    const sets = ['estado = $1', 'cashback_acreditado = $2', 'puntos_devueltos = $3'];
-    const vals = [estadoFinal, acreditado, devueltos];
+    const sets = ['estado = $1', 'cashback_acreditado = $2', 'puntos_devueltos = $3', 'items = $4::jsonb', 'stock_deducido = $5', 'stock_reintegrado = $6'];
+    const vals = [estadoFinal, acreditado, devueltos, JSON.stringify(itemsActualizados), stockDeducido, stockReintegrado];
     for (const [col, val] of Object.entries(cambios)) {
       vals.push(val); sets.push(`${col} = $${vals.length}${col === 'imagenes' ? '::jsonb' : ''}`);
     }
