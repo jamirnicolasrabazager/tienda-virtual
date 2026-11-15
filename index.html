@@ -150,10 +150,40 @@
       background: var(--light); border: 1px solid var(--border); border-radius: 18px;
       touch-action: pan-y;
     }
+    .mini-admin video { width:100%;height:100%;object-fit:cover;display:block;background:#111; }
+    .product-card-visual { aspect-ratio: 1 / 1; background: var(--light); }
+    .product-card-visual > img,.product-card-visual > video { width:100%;height:100%;object-fit:cover;display:block; }
+
     .galeria-principal img {
       width: 100%; height: 100%; object-fit: cover; display: block;
       transition: opacity 0.22s ease, transform 0.35s ease;
     }
+    .galeria-principal video {
+      width: 100%; height: 100%; object-fit: contain; display: block; background: #101014;
+    }
+    .galeria-principal .ampliar-media {
+      position: absolute; right: 12px; top: 12px; z-index: 3;
+      border: 1px solid rgba(255,255,255,.3); border-radius: 10px; padding: 8px 11px;
+      color: #fff; background: rgba(14,14,16,.62); cursor: pointer; backdrop-filter: blur(5px);
+    }
+    .miniatura { position: relative; }
+    .miniatura video { width:100%;height:100%;object-fit:cover;display:block;background:#111; }
+    .miniatura .miniatura-video-icon { position:absolute; inset:0; display:grid; place-items:center; color:#fff; font-size:20px; text-shadow:0 2px 8px #000; background:rgba(0,0,0,.15); }
+    .media-viewer { display:none; position:fixed; inset:0; z-index:10050; padding:24px; align-items:center; justify-content:center; background:rgba(8,8,12,.94); }
+    .media-viewer.active { display:flex; }
+    .media-viewer-stage { width:min(96vw,1500px); height:min(88vh,1000px); display:grid; place-items:center; }
+    .media-viewer-stage img,.media-viewer-stage video { max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.45); }
+    .media-viewer-close,.media-viewer-nav { position:absolute;z-index:2;border:1px solid rgba(255,255,255,.25);border-radius:50%;width:46px;height:46px;display:grid;place-items:center;color:#fff;background:rgba(20,20,24,.7);cursor:pointer;font-size:24px; }
+    .media-viewer-close { top:20px;right:20px; }
+    .media-viewer-nav.prev { left:20px;top:50%;transform:translateY(-50%); }
+    .media-viewer-nav.next { right:20px;top:50%;transform:translateY(-50%); }
+    .media-viewer-counter { position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(20,20,24,.72);padding:6px 12px;border-radius:999px;font-size:13px; }
+    .google-auth-btn { display:flex;align-items:center;justify-content:center;gap:11px;width:100%;margin-top:13px;padding:11px 14px;border:1px solid #dadce0;border-radius:11px;background:#fff;color:#303134;font-weight:650;cursor:pointer;transition:background .18s,border-color .18s,transform .18s; }
+    .google-auth-btn:hover { background:#f8f9fa;border-color:#b8bcc2;transform:translateY(-1px); }
+    .google-auth-btn:disabled { opacity:.6;cursor:wait;transform:none; }
+    .google-auth-divider { display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:12px; }
+    .google-auth-divider::before,.google-auth-divider::after { content:"";height:1px;flex:1;background:var(--border); }
+    @media (max-width:560px) { .media-viewer { padding:10px; } .media-viewer-close { top:10px;right:10px; } .media-viewer-nav.prev { left:8px; } .media-viewer-nav.next { right:8px; } .media-viewer-nav,.media-viewer-close { width:40px;height:40px; } }
     .galeria-principal img.desvanecida { opacity: 0; transform: scale(1.02); }
     .galeria-flecha {
       position: absolute; top: 50%; transform: translateY(-50%);
@@ -236,6 +266,8 @@
     .miniaturas-admin { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 6px; }
     .mini-admin { position: relative; width: 92px; }
     .mini-admin .marco { position: relative; width: 92px; height: 92px; overflow: hidden; border: 2px solid var(--border); border-radius: 12px; background: var(--light); }
+    .mini-admin video { width:100%;height:100%;object-fit:cover;display:block;background:#111; }
+    .mini-admin .miniatura-video-icon { position:absolute;inset:0;display:grid;place-items:center;color:#fff;text-shadow:0 2px 8px #000;pointer-events:none; }
     .mini-admin.principal .marco { border-color: var(--primary); box-shadow: 0 6px 14px -6px rgba(74, 20, 140, 0.6); }
     .mini-admin img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .mini-admin .quitar {
@@ -694,10 +726,10 @@
             <input type="text" id="prod-colores" placeholder="Ej.: Negro, Azul marino, Blanco" class="form-control">
 
             <div style="margin-bottom: 15px;">
-              <label style="font-weight:bold; display:block; margin-bottom:5px;">Imágenes del Producto (la primera es la principal):</label>
-              <input type="file" id="prod-file" class="form-control" accept="image/*" multiple onchange="agregarImagenesProducto()" style="margin-bottom:6px;">
+              <label style="font-weight:bold; display:block; margin-bottom:5px;">Fotos y videos del producto:</label>
+              <input type="file" id="prod-media-files" class="form-control" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" multiple onchange="agregarMediosProducto()" style="margin-bottom:6px;">
               <div id="prod-imagenes-lista" class="miniaturas-admin"></div>
-              <small style="color:var(--muted);">Hasta 8 imágenes. Se optimizan automáticamente antes de subirlas.</small>
+              <small style="color:var(--muted);">Puedes agregar hasta 8 fotos y 3 videos (MP4, WEBM o MOV). Fotos optimizadas automáticamente; videos de hasta 30 MB cada uno.</small>
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
@@ -821,7 +853,7 @@
       <label>WhatsApp específico (opcional)</label><input id="edit-prod-whatsapp" class="form-control" placeholder="8 dígitos">
       <label>Facebook del producto (opcional)</label><input id="edit-prod-fb" class="form-control">
       <label>Instagram del producto (opcional)</label><input id="edit-prod-ig" class="form-control">
-      <div class="editor-images-head"><strong>Galería de imágenes (máximo 8)</strong><input type="file" id="edit-prod-files" accept="image/*" multiple class="form-control" onchange="agregarImagenesEditarProducto()"></div>
+      <div class="editor-images-head"><strong>Galería de fotos y videos (hasta 8 fotos + 3 videos)</strong><input type="file" id="edit-prod-files" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" multiple class="form-control" onchange="agregarMediosEditarProducto()"></div>
       <div id="edit-prod-imagenes" class="miniaturas-admin"></div>
       <button type="button" id="btn-guardar-edicion-producto" class="btn" style="width:100%;margin-top:18px;" onclick="guardarEdicionProducto()">Guardar producto</button>
     </div>
@@ -850,9 +882,11 @@
       <span class="modal-close" onclick="cerrarModalDetalle()">×</span>
       <div class="galeria" id="md-galeria">
         <div class="galeria-principal" id="md-principal">
-          <img id="md-imagen" alt="Imagen del artículo">
-          <button type="button" class="galeria-flecha izq" aria-label="Imagen anterior" onclick="moverGaleria(-1)">&#8249;</button>
-          <button type="button" class="galeria-flecha der" aria-label="Imagen siguiente" onclick="moverGaleria(1)">&#8250;</button>
+          <img id="md-imagen" alt="Imagen del artículo" role="button" tabindex="0" aria-label="Ampliar imagen" onclick="abrirVisorMedia()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirVisorMedia();}">
+          <video id="md-video" playsinline preload="metadata" role="button" tabindex="0" aria-label="Abrir video ampliado" onclick="abrirVisorMedia()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirVisorMedia();}" style="display:none;cursor:zoom-in;"></video>
+          <button type="button" class="ampliar-media" id="md-ampliar-video" style="display:none;" aria-label="Ampliar video" onclick="abrirVisorMedia()">⛶ Ampliar</button>
+          <button type="button" class="galeria-flecha izq" aria-label="Recurso anterior" onclick="moverGaleria(-1)">&#8249;</button>
+          <button type="button" class="galeria-flecha der" aria-label="Recurso siguiente" onclick="moverGaleria(1)">&#8250;</button>
           <span class="galeria-contador" id="md-contador"></span>
         </div>
         <div class="galeria-miniaturas" id="md-miniaturas" role="tablist" aria-label="Miniaturas del producto"></div>
@@ -953,6 +987,15 @@
     </div>
   </div>
 
+  <!-- ================= VISOR AMPLIADO DE FOTOS Y VIDEOS ================= -->
+  <div class="media-viewer" id="visor-media" role="dialog" aria-modal="true" aria-label="Vista ampliada de recurso multimedia" onclick="if(event.target===this)cerrarVisorMedia()">
+    <button type="button" class="media-viewer-close" aria-label="Cerrar visor" onclick="cerrarVisorMedia()">×</button>
+    <button type="button" class="media-viewer-nav prev" id="visor-prev" aria-label="Recurso anterior" onclick="moverVisorMedia(-1)">‹</button>
+    <div class="media-viewer-stage" id="visor-media-stage"></div>
+    <button type="button" class="media-viewer-nav next" id="visor-next" aria-label="Recurso siguiente" onclick="moverVisorMedia(1)">›</button>
+    <span class="media-viewer-counter" id="visor-contador"></span>
+  </div>
+
   <!-- ================= MODAL DE INGRESO / REGISTRO ================= -->
   <div class="modal" id="modal-auth">
     <div class="modal-content" style="grid-template-columns: 1fr; max-width: 420px; display:block;">
@@ -967,6 +1010,13 @@
       <input type="email" id="auth-email" class="form-control" placeholder="Correo electrónico" autocomplete="email">
       <input type="password" id="auth-pass" class="form-control" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="current-password" onkeydown="if(event.key==='Enter') enviarAuth()">
       <button class="btn" id="auth-submit" style="width:100%;" onclick="enviarAuth()">Ingresar</button>
+      <div id="auth-google-wrap">
+        <div class="google-auth-divider">o continúa con</div>
+        <button type="button" class="google-auth-btn" id="btn-google-auth" onclick="iniciarSesionGoogle()">
+          <svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.05 13.22l7.98 6.19C11.97 13.72 17.45 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.73 7.18l7.7 5.98c4.5-4.16 7.07-10.28 7.07-17.63z"/><path fill="#FBBC05" d="M10.03 28.59A14.4 14.4 0 0 1 9.25 24c0-1.59.27-3.13.75-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.57 10.78l7.46-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.82l-7.7-5.98c-2.13 1.43-4.85 2.28-8.21 2.28-6.55 0-12.03-4.22-14-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continuar con Google
+        </button>
+      </div>
       <p id="auth-cambiar" style="text-align:center; font-size:14px; margin-bottom:0;"></p>
     </div>
   </div>
@@ -1019,6 +1069,8 @@
     }
     const urlImg = u => /^(https?:\/\/|data:image\/)/i.test(u || '') ? u : IMG_VACIA;
     const urlLink = u => /^https?:\/\//i.test(u || '') ? u : '';
+    // Permite URLs blob solo para previsualizaciones locales antes de subir videos; nunca se guardan en la base.
+    const urlMediaPreview = u => /^(https?:\/\/|blob:)/i.test(String(u || '')) ? u : '';
     const prodPorId = id => cacheProductos.find(p => p.id === id);
     function leerLS(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
     function guardarLS(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -1043,6 +1095,7 @@
     let modoAuth = 'login';
     let authParaAdmin = false;
     let continuarCheckoutTrasAuth = false;
+    let googleCallbackContext = null;
     let stockAdminRows = [];
     let variantesStockActuales = [];
     let productoStockActualId = null;
@@ -1140,8 +1193,12 @@
         item.onclick = () => abrirDetalleFichaProducto(p);
         item.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirDetalleFichaProducto(p); } };
         const pct = num(p.cashback_pct);
+        const portada = mediaDe(p)[0];
+        const visualPortada = portada.type === 'video'
+          ? `<video src="${esc(urlLink(portada.url))}#t=0.1" muted playsinline preload="metadata" aria-label="Vista previa de video del producto"></video><span class="miniatura-video-icon" style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:26px;background:rgba(0,0,0,.12);pointer-events:none;">▶</span>`
+          : `<img src="${esc(urlImg(portada.url))}" alt="Producto">`;
         item.innerHTML = `
-          <img src="${esc(urlImg(p.imagen_url))}" alt="Producto">
+          <div class="product-card-visual" style="position:relative;overflow:hidden;">${visualPortada}</div>
           <div class="product-card-body">
             <h3>${esc(p.nombre)}</h3>
             <div class="price">${bs(p.precio)}</div>
@@ -1235,49 +1292,100 @@
       return opciones.length;
     }
 
-    // ---------- Galería de imágenes del producto ----------
+    // ---------- Galería multimedia de productos (fotos y videos) ----------
     let galeriaActual = [];
     let galeriaIdx = 0;
     let galeriaTimer = null;
-    function imagenesDe(p) {
-      let lista = p.imagenes;
-      if (typeof lista === 'string') { try { lista = JSON.parse(lista); } catch (e) { lista = []; } }
+    let visorMediaIdx = 0;
+    function mediaDe(p) {
+      let media = p && p.media;
+      if (typeof media === 'string') { try { media = JSON.parse(media); } catch (_) { media = []; } }
+      if (Array.isArray(media) && media.length) {
+        return media.filter(m => m && ['image', 'video'].includes(m.type) && typeof m.url === 'string' && m.url);
+      }
+      let lista = p && p.imagenes;
+      if (typeof lista === 'string') { try { lista = JSON.parse(lista); } catch (_) { lista = []; } }
       lista = Array.isArray(lista) ? lista.filter(u => typeof u === 'string' && u) : [];
-      if (!lista.length && p.imagen_url) lista = [p.imagen_url];   // productos anteriores con una sola imagen
-      return lista.length ? lista : [IMG_VACIA];
+      if (!lista.length && p && p.imagen_url) lista = [p.imagen_url];
+      return lista.length ? lista.map(url => ({ type: 'image', url })) : [{ type: 'image', url: IMG_VACIA }];
+    }
+    function mediosMiniaturaHTML(m, i) {
+      return m.type === 'video'
+        ? `<button type="button" class="miniatura" role="tab" aria-label="Ver video ${i + 1}" onclick="mostrarImagen(${i})"><video src="${esc(urlLink(m.url))}#t=0.1" muted playsinline preload="metadata"></video><span class="miniatura-video-icon">▶</span></button>`
+        : `<button type="button" class="miniatura" role="tab" aria-label="Ver foto ${i + 1}" onclick="mostrarImagen(${i})"><img src="${esc(urlImg(m.url))}" alt="" loading="lazy"></button>`;
     }
     function configurarGaleria(p) {
-      galeriaActual = imagenesDe(p);
+      galeriaActual = mediaDe(p);
       $('md-galeria').classList.toggle('multiple', galeriaActual.length > 1);
-      $('md-miniaturas').innerHTML = galeriaActual.map((u, i) =>
-        `<button type="button" class="miniatura" role="tab" aria-label="Ver imagen ${i + 1}" onclick="mostrarImagen(${i})"><img src="${esc(urlImg(u))}" alt="" loading="lazy"></button>`
-      ).join('');
+      $('md-miniaturas').innerHTML = galeriaActual.map(mediosMiniaturaHTML).join('');
       mostrarImagen(0, true);
+    }
+    function detenerVideoGaleria() {
+      const video = $('md-video');
+      if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
     }
     function mostrarImagen(i, inmediato) {
       const n = galeriaActual.length;
       if (!n) return;
       i = ((i % n) + n) % n;
       galeriaIdx = i;
+      const media = galeriaActual[i];
       const miniaturas = [...document.querySelectorAll('#md-miniaturas .miniatura')];
       miniaturas.forEach((m, j) => { m.classList.toggle('activa', j === i); m.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
       $('md-contador').textContent = n > 1 ? `${i + 1} / ${n}` : '';
-      const img = $('md-imagen');
-      const url = urlImg(galeriaActual[i]);
+      const img = $('md-imagen'), video = $('md-video'), ampliar = $('md-ampliar-video');
       clearTimeout(galeriaTimer);
-      if (inmediato) { img.src = url; img.classList.remove('desvanecida'); return; }
       if (miniaturas[i]) miniaturas[i].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      img.classList.add('desvanecida');                       // se desvanece la imagen actual...
-      galeriaTimer = setTimeout(() => {                        // ...y se muestra la nueva ya precargada
-        const pre = new Image();
-        pre.onload = pre.onerror = () => {
-          if (galeriaIdx !== i) return;                        // el cliente ya eligió otra miniatura
-          img.src = url; img.classList.remove('desvanecida');
-        };
-        pre.src = url;
-      }, 140);
+      detenerVideoGaleria();
+      if (media.type === 'video') {
+        img.style.display = 'none'; img.removeAttribute('src');
+        video.style.display = 'block'; video.src = urlLink(media.url); video.load();
+        ampliar.style.display = 'inline-flex';
+      } else {
+        video.style.display = 'none';
+        ampliar.style.display = 'none';
+        img.style.display = 'block';
+        const url = urlImg(media.url);
+        if (inmediato) { img.src = url; img.classList.remove('desvanecida'); }
+        else {
+          img.classList.add('desvanecida');
+          galeriaTimer = setTimeout(() => {
+            const pre = new Image();
+            pre.onload = pre.onerror = () => { if (galeriaIdx !== i) return; img.src = url; img.classList.remove('desvanecida'); };
+            pre.src = url;
+          }, 120);
+        }
+      }
     }
     function moverGaleria(d) { mostrarImagen(galeriaIdx + d); }
+    function renderVisorMedia() {
+      const media = galeriaActual[visorMediaIdx];
+      const stage = $('visor-media-stage');
+      if (!media) return;
+      stage.innerHTML = media.type === 'video'
+        ? `<video src="${esc(urlLink(media.url))}" controls autoplay playsinline></video>`
+        : `<img src="${esc(urlImg(media.url))}" alt="Imagen ampliada del producto">`;
+      $('visor-contador').textContent = galeriaActual.length > 1 ? `${visorMediaIdx + 1} / ${galeriaActual.length}` : '';
+      $('visor-prev').style.display = galeriaActual.length > 1 ? 'grid' : 'none';
+      $('visor-next').style.display = galeriaActual.length > 1 ? 'grid' : 'none';
+    }
+    function abrirVisorMedia() {
+      if (!galeriaActual.length) return;
+      visorMediaIdx = galeriaIdx;
+      renderVisorMedia();
+      $('visor-media').classList.add('active');
+    }
+    function cerrarVisorMedia() {
+      const stage = $('visor-media-stage');
+      const v = stage.querySelector('video'); if (v) v.pause();
+      stage.innerHTML = '';
+      $('visor-media').classList.remove('active');
+    }
+    function moverVisorMedia(d) {
+      if (!galeriaActual.length) return;
+      visorMediaIdx = (visorMediaIdx + d + galeriaActual.length) % galeriaActual.length;
+      renderVisorMedia();
+    }
 
     function actualizarPrecioTotalFicha() {
       if (!productoSeleccionadoActual) return;
@@ -1747,44 +1855,39 @@
     }
     function cerrarMisPedidos() { $('modal-mis-pedidos').classList.remove('active'); }
 
-    // ---------- Edición completa de productos, incluyendo la galería ----------
+    // ---------- Edición completa de productos, incluyendo fotos y videos ----------
     let productoEditandoId = null;
-    let imagenesEditarProducto = [];
-    function renderImagenesEditarProducto() {
-      $('edit-prod-imagenes').innerHTML = imagenesEditarProducto.map((u, i) => `<div class="mini-admin ${i === 0 ? 'principal' : ''}"><div class="marco"><img src="${esc(urlImg(u))}" alt="Imagen ${i + 1}"><button type="button" class="quitar" onclick="quitarImagenEditarProducto(${i})">✕</button></div>${i === 0 ? '<span class="etiqueta">Principal</span>' : `<button type="button" class="hacer-principal" onclick="hacerPrincipalEditarProducto(${i})">Hacer principal</button>`}</div>`).join('');
+    let mediosEditarProducto = [];
+    function renderMediosEditarProducto() {
+      $('edit-prod-imagenes').innerHTML = mediosEditarProducto.map((m, i) => `<div class="mini-admin ${i === 0 ? 'principal' : ''}"><div class="marco">${m.type === 'video' ? `<video src="${esc(urlMediaPreview(m.preview || m.url))}#t=0.1" muted playsinline preload="metadata"></video><span class="miniatura-video-icon">▶</span>` : `<img src="${esc(urlImg(m.preview || m.url))}" alt="Foto ${i + 1}">`}<button type="button" class="quitar" aria-label="Quitar recurso ${i + 1}" onclick="quitarMedioEditarProducto(${i})">✕</button></div>${i === 0 ? '<span class="etiqueta">Principal</span>' : `<button type="button" class="hacer-principal" onclick="hacerPrincipalMedioEditarProducto(${i})">Hacer principal</button>`}<small>${m.type === 'video' ? 'Video' : 'Foto'}</small></div>`).join('');
     }
     function abrirEditarProducto(id) {
       const p = prodPorId(id); if (!p) return;
-      productoEditandoId = id; imagenesEditarProducto = imagenesDe(p).filter(u => u !== IMG_VACIA).slice(0, MAX_IMAGENES);
+      productoEditandoId = id; mediosEditarProducto = mediaDe(p).filter(m => m.url !== IMG_VACIA).slice(0, 11).map(m => ({ type: m.type, url: m.url, preview: m.url }));
       $('edit-prod-id').value = id; $('edit-prod-nombre').value = p.nombre || ''; $('edit-prod-precio').value = p.precio;
       $('edit-prod-cashback').value = num(p.cashback_pct); $('edit-prod-descripcion').value = p.descripcion || '';
       $('edit-prod-tallas').value = p.tallas || ''; $('edit-prod-colores').value = p.colores || '';
       $('edit-prod-whatsapp').value = p.whatsapp || '';
       let redes = {}; try { redes = typeof p.redes_json === 'string' ? JSON.parse(p.redes_json || '{}') : (p.redes_json || {}); } catch (_) {}
       $('edit-prod-fb').value = redes.fb || ''; $('edit-prod-ig').value = redes.ig || '';
-      $('edit-prod-files').value = ''; renderImagenesEditarProducto(); $('modal-editar-producto').classList.add('active');
+      $('edit-prod-files').value = ''; renderMediosEditarProducto(); $('modal-editar-producto').classList.add('active');
     }
-    async function agregarImagenesEditarProducto() {
+    async function agregarMediosEditarProducto() {
       const input = $('edit-prod-files'); const files = [...input.files]; input.value = '';
-      const libres = Math.max(0, MAX_IMAGENES - imagenesEditarProducto.length);
-      for (const f of files.slice(0, libres)) {
-        try { const data = await comprimirImagen(f, 1200, 'image/jpeg', .82); const out = await apiFetch('/api/imagenes', { method: 'POST', body: { data } }); imagenesEditarProducto.push(out.url); }
-        catch (e) { alert(`${f.name}: ${e.message}`); }
-      }
-      if (files.length > libres) alert('La galería permite un máximo de 8 imágenes.');
-      renderImagenesEditarProducto();
+      await procesarArchivosMedia(files, mediosEditarProducto, renderMediosEditarProducto);
     }
-    function quitarImagenEditarProducto(i) { imagenesEditarProducto.splice(i, 1); renderImagenesEditarProducto(); }
-    function hacerPrincipalEditarProducto(i) { imagenesEditarProducto.unshift(...imagenesEditarProducto.splice(i, 1)); renderImagenesEditarProducto(); }
+    function quitarMedioEditarProducto(i) { mediosEditarProducto.splice(i, 1); renderMediosEditarProducto(); }
+    function hacerPrincipalMedioEditarProducto(i) { mediosEditarProducto.unshift(...mediosEditarProducto.splice(i, 1)); renderMediosEditarProducto(); }
     async function guardarEdicionProducto() {
       const btn = $('btn-guardar-edicion-producto'); btn.disabled = true; btn.textContent = 'Guardando...';
       try {
+        const media = await subirMediosPendientes(mediosEditarProducto, msg => { btn.textContent = msg; });
         await apiFetch('/api/productos/' + productoEditandoId, { method: 'PUT', body: {
           nombre: $('edit-prod-nombre').value.trim(), precio: $('edit-prod-precio').value,
           cashback_pct: $('edit-prod-cashback').value, descripcion: $('edit-prod-descripcion').value,
           tallas: $('edit-prod-tallas').value, colores: $('edit-prod-colores').value,
           whatsapp: $('edit-prod-whatsapp').value, redes_json: { fb: $('edit-prod-fb').value, ig: $('edit-prod-ig').value },
-          imagenes: imagenesEditarProducto
+          media
         }});
         cerrarEditarProducto(); await cargarAplicacionCompleta(); toast('Producto actualizado correctamente.');
       } catch (e) { alert(e.message); }
@@ -1887,6 +1990,61 @@
       $('auth-cambiar').innerHTML = authParaAdmin ? '' : (reg
         ? '¿Ya tienes cuenta? <a href="#" onclick="cambiarModoAuth(\'login\'); return false;" style="color:var(--primary); font-weight:bold;">Ingresar</a>'
         : '¿Eres nuevo? <a href="#" onclick="cambiarModoAuth(\'registro\'); return false;" style="color:var(--primary); font-weight:bold;">Crear cuenta</a>');
+    }
+
+    function bytesBase64Url(bytes) {
+      let bin = ''; for (const b of bytes) bin += String.fromCharCode(b);
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    }
+    async function iniciarSesionGoogle() {
+      const btn = $('btn-google-auth');
+      if (!window.crypto || !crypto.subtle || !crypto.getRandomValues) return alert('Tu navegador no permite iniciar sesión segura con Google. Actualízalo o utiliza HTTPS.');
+      btn.disabled = true; btn.textContent = 'Conectando con Google...';
+      try {
+        const cfg = await apiFetch('/api/auth/config', { noAuth: true });
+        const random = new Uint8Array(64); crypto.getRandomValues(random);
+        const verifier = bytesBase64Url(random);
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+        const challenge = bytesBase64Url(new Uint8Array(digest));
+        const redirectTo = new URL(window.location.href);
+        redirectTo.search = ''; redirectTo.hash = '';
+        sessionStorage.setItem('jg_google_pkce_verifier', verifier);
+        sessionStorage.setItem('jg_google_checkout', continuarCheckoutTrasAuth ? '1' : '0');
+        sessionStorage.setItem('jg_google_admin', authParaAdmin ? '1' : '0');
+        const authUrl = new URL(cfg.url.replace(/\/+$/, '') + '/auth/v1/authorize');
+        authUrl.searchParams.set('provider', 'google');
+        authUrl.searchParams.set('redirect_to', redirectTo.toString());
+        authUrl.searchParams.set('code_challenge', challenge);
+        authUrl.searchParams.set('code_challenge_method', 's256');
+        window.location.assign(authUrl.toString());
+      } catch (e) {
+        alert(e.message || 'No se pudo iniciar la autenticación con Google.');
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.73 7.18l7.7 5.98c4.5-4.16 7.07-10.28 7.07-17.63z"/><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.05 13.22l7.98 6.19C11.97 13.72 17.45 9.5 24 9.5z"/></svg> Continuar con Google';
+      }
+    }
+    async function procesarCallbackGoogle() {
+      const current = new URL(window.location.href);
+      const code = current.searchParams.get('code');
+      const oauthError = current.searchParams.get('error_description') || current.searchParams.get('error');
+      if (!code && !oauthError) return null;
+      const verifier = sessionStorage.getItem('jg_google_pkce_verifier') || '';
+      googleCallbackContext = {
+        checkout: sessionStorage.getItem('jg_google_checkout') === '1',
+        admin: sessionStorage.getItem('jg_google_admin') === '1'
+      };
+      sessionStorage.removeItem('jg_google_checkout');
+      sessionStorage.removeItem('jg_google_admin');
+      sessionStorage.removeItem('jg_google_pkce_verifier');
+      current.searchParams.delete('code'); current.searchParams.delete('state');
+      current.searchParams.delete('error'); current.searchParams.delete('error_description');
+      window.history.replaceState({}, document.title, current.pathname + current.search + current.hash);
+      if (oauthError) throw new Error(String(oauthError).replace(/\+/g, ' '));
+      if (!verifier || !code) throw new Error('La sesión de Google no pudo verificarse. Vuelve a intentarlo.');
+      const d = await apiFetch('/api/auth/google/exchange', { method: 'POST', noAuth: true, body: { code, code_verifier: verifier } });
+      sesion = { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user, es_admin: d.es_admin, perfil: d.perfil };
+      guardarLS('jg_sesion', sesion);
+      return googleCallbackContext;
     }
     async function enviarAuth() {
       const email = $('auth-email').value.trim();
@@ -2000,32 +2158,67 @@
       });
     }
 
-    // ----- Varias imágenes por producto (máx. 8). Se reducen en el navegador (1200 px) y se suben una a una -----
+    // ----- Fotos y videos de producto: 8 imágenes + 3 videos -----
     const MAX_IMAGENES = 8;
-    let prodImagenes = []; // [{ data: 'data:image/jpeg;base64,...', url: null | 'https://...' }]
+    const MAX_VIDEOS = 3;
+    const MAX_VIDEO_BYTES = 30 * 1024 * 1024;
+    let prodMedios = []; // [{type, preview, data?, file?, url?}]
 
-    async function agregarImagenesProducto() {
-      const input = $('prod-file');
-      const archivos = [...input.files];
-      input.value = '';
-      if (!archivos.length) return;
-      const cupo = Math.max(0, MAX_IMAGENES - prodImagenes.length);
-      if (archivos.length > cupo) alert(`Máximo ${MAX_IMAGENES} imágenes por producto. Se agregarán solo ${cupo}.`);
-      for (const f of archivos.slice(0, cupo)) {
-        try { prodImagenes.push({ data: await comprimirImagen(f, 1200, 'image/jpeg', 0.82), url: null }); }
-        catch (e) { alert(`${f.name}: ${e.message}`); }
+    async function procesarArchivosMedia(files, destino, render) {
+      const imagenesActuales = destino.filter(m => m.type === 'image').length;
+      const videosActuales = destino.filter(m => m.type === 'video').length;
+      for (const f of files) {
+        const esImagen = MIME_FRONT_IMAGENES.includes(f.type);
+        const esVideo = MIME_FRONT_VIDEOS.includes(f.type);
+        if (!esImagen && !esVideo) { alert(`${f.name}: formato no admitido. Usa JPG, PNG, WEBP, MP4, WEBM o MOV.`); continue; }
+        if (esImagen && destino.filter(m => m.type === 'image').length >= MAX_IMAGENES) { alert('La galería permite hasta 8 fotos.'); continue; }
+        if (esVideo && destino.filter(m => m.type === 'video').length >= MAX_VIDEOS) { alert('La galería permite hasta 3 videos.'); continue; }
+        if (esVideo && f.size > MAX_VIDEO_BYTES) { alert(`${f.name}: el video supera el máximo de 30 MB.`); continue; }
+        try {
+          if (esImagen) {
+            const data = await comprimirImagen(f, 1200, 'image/jpeg', .82);
+            destino.push({ type: 'image', data, preview: data, url: null });
+          } else {
+            const preview = URL.createObjectURL(f);
+            destino.push({ type: 'video', file: f, preview, url: null });
+          }
+        } catch (e) { alert(`${f.name}: ${e.message}`); }
+        render();
       }
-      renderImagenesProducto();
+      if (!files.length) return;
     }
-    function renderImagenesProducto() {
-      $('prod-imagenes-lista').innerHTML = prodImagenes.map((im, i) => `
-        <div class="mini-admin ${i === 0 ? 'principal' : ''}">
-          <div class="marco"><img src="${esc(im.data)}" alt="Imagen ${i + 1}"><button type="button" class="quitar" aria-label="Quitar imagen" onclick="quitarImagenProducto(${i})">✕</button></div>
-          ${i === 0 ? '<span class="etiqueta">Principal</span>' : `<button type="button" class="hacer-principal" onclick="hacerPrincipalProducto(${i})">Hacer principal</button>`}
-        </div>`).join('');
+    const MIME_FRONT_IMAGENES = ['image/jpeg', 'image/png', 'image/webp'];
+    const MIME_FRONT_VIDEOS = ['video/mp4', 'video/webm', 'video/quicktime'];
+    async function agregarMediosProducto() {
+      const input = $('prod-media-files'); const files = [...input.files]; input.value = '';
+      await procesarArchivosMedia(files, prodMedios, renderMediosProducto);
     }
-    function quitarImagenProducto(i) { prodImagenes.splice(i, 1); renderImagenesProducto(); }
-    function hacerPrincipalProducto(i) { prodImagenes.unshift(...prodImagenes.splice(i, 1)); renderImagenesProducto(); }
+    function renderMediosProducto() {
+      $('prod-imagenes-lista').innerHTML = prodMedios.map((m, i) => `<div class="mini-admin ${i === 0 ? 'principal' : ''}"><div class="marco">${m.type === 'video' ? `<video src="${esc(urlMediaPreview(m.preview))}#t=0.1" muted playsinline preload="metadata"></video><span class="miniatura-video-icon">▶</span>` : `<img src="${esc(m.preview)}" alt="Foto ${i + 1}">`}<button type="button" class="quitar" aria-label="Quitar recurso ${i + 1}" onclick="quitarMedioProducto(${i})">✕</button></div>${i === 0 ? '<span class="etiqueta">Principal</span>' : `<button type="button" class="hacer-principal" onclick="hacerPrincipalMedioProducto(${i})">Hacer principal</button>`}<small>${m.type === 'video' ? 'Video' : 'Foto'}</small></div>`).join('');
+    }
+    function quitarMedioProducto(i) { const m = prodMedios.splice(i, 1)[0]; if (m && m.type === 'video' && m.preview && m.preview.startsWith('blob:')) URL.revokeObjectURL(m.preview); renderMediosProducto(); }
+    function hacerPrincipalMedioProducto(i) { prodMedios.unshift(...prodMedios.splice(i, 1)); renderMediosProducto(); }
+    async function subirMediosPendientes(items, progreso) {
+      const resultado = [];
+      for (let i = 0; i < items.length; i++) {
+        const m = items[i];
+        let url = m.url;
+        if (!url && m.type === 'image' && m.data) {
+          if (progreso) progreso(`Subiendo foto ${i + 1} de ${items.length}...`);
+          url = (await apiFetch('/api/imagenes', { method: 'POST', body: { data: m.data } })).url;
+        } else if (!url && m.type === 'video' && m.file) {
+          if (progreso) progreso(`Preparando video ${i + 1} de ${items.length}...`);
+          const firma = await apiFetch('/api/videos/firma', { method: 'POST', body: { mime: m.file.type } });
+          if (progreso) progreso(`Subiendo video ${i + 1} de ${items.length}...`);
+          const r = await fetch(firma.signedUrl, { method: 'PUT', headers: { 'Content-Type': m.file.type, 'cache-control': 'max-age=31536000', 'apikey': firma.anonKey, 'Authorization': 'Bearer ' + firma.anonKey, 'x-upsert': 'false' }, body: m.file });
+          if (!r.ok) throw new Error('No se pudo subir el video a Supabase Storage. Comprueba el bucket y los permisos de carga.');
+          url = firma.publicUrl;
+        }
+        if (!url) throw new Error('Uno de los recursos multimedia no se pudo preparar.');
+        resultado.push({ type: m.type, url });
+      }
+      return resultado;
+    }
 
     function mostrarVistaPreviaQr() {
       const u = urlLink($('cfg-qr-pago').value);
@@ -2050,18 +2243,9 @@
       if (!nombre || !precio) return alert("El nombre y el precio son obligatorios para publicar.");
       const btn = $('btn-publicar'); btn.disabled = true; btn.innerText = 'Publicando...';
       try {
-        // 1) Cada imagen se sube por separado a Supabase Storage (evita el límite de 4.5 MB por petición)
-        const urls = [];
-        for (let i = 0; i < prodImagenes.length; i++) {
-          const im = prodImagenes[i];
-          if (!im.url) {
-            btn.innerText = `Subiendo imagen ${i + 1} de ${prodImagenes.length}...`;
-            im.url = (await apiFetch('/api/imagenes', { method: 'POST', body: { data: im.data } })).url;
-          }
-          urls.push(im.url);
-        }
-        // 2) Se guarda el producto con el arreglo de URLs
+        const media = await subirMediosPendientes(prodMedios, msg => { btn.innerText = msg; });
         btn.innerText = 'Publicando...';
+        const imagenPrincipal = media.find(m => m.type === 'image');
         await apiFetch('/api/productos', {
           method: 'POST',
           body: {
@@ -2070,8 +2254,8 @@
             descripcion: $('prod-descripcion').value,
             tallas: $('prod-tallas').value,
             colores: $('prod-colores').value,
-            imagenes: urls,
-            imagen_url: urls[0] || '',
+            media,
+            imagen_url: imagenPrincipal ? imagenPrincipal.url : '',
             whatsapp: $('prod-whatsapp').value,
             redes_json: { fb: $('prod-redes-fb').value, ig: $('prod-redes-ig').value }
           }
@@ -2079,7 +2263,8 @@
         alert("¡Producto publicado exitosamente!");
         ['prod-nombre', 'prod-precio', 'prod-descripcion', 'prod-tallas', 'prod-colores', 'prod-whatsapp', 'prod-redes-fb', 'prod-redes-ig'].forEach(id => { $(id).value = ""; });
         $('prod-cashback').value = 0;
-        prodImagenes = []; renderImagenesProducto();
+        prodMedios.forEach(m => { if (m.type === 'video' && m.preview && m.preview.startsWith('blob:')) URL.revokeObjectURL(m.preview); });
+        prodMedios = []; renderMediosProducto();
         await cargarAplicacionCompleta();
       } catch (e) {
         alert("Error al publicar: " + e.message);
@@ -2366,7 +2551,7 @@
     }
 
     // ---------- Cierre de modales ----------
-    function cerrarModalDetalle() { $('modal-detalle').classList.remove('active'); }
+    function cerrarModalDetalle() { detenerVideoGaleria(); $('modal-detalle').classList.remove('active'); }
     function cerrarModalComprobante() { $('modal-comprobante').classList.remove('active'); }
 
     (function () { // deslizar el dedo sobre la imagen principal cambia de foto
@@ -2381,16 +2566,26 @@
     })();
 
     window.addEventListener('DOMContentLoaded', async () => {
+      try { await procesarCallbackGoogle(); }
+      catch (e) { console.error('Google OAuth:', e); alert(e.message || 'No se pudo completar el inicio con Google.'); }
       renderHeader();
       guardarCarrito();
       await cargarAplicacionCompleta();
       if (sesion) await actualizarPerfil();
+      if (googleCallbackContext && googleCallbackContext.admin) {
+        if (sesion && sesion.es_admin) irAVista('admin');
+        else alert('La cuenta de Google no tiene permisos de administrador.');
+      } else if (googleCallbackContext && googleCallbackContext.checkout && sesion) {
+        irAPago();
+      }
       document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
           if ($('modal-auth').classList.contains('active')) cerrarAuth();
+          if ($('visor-media').classList.contains('active')) cerrarVisorMedia();
           document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
           cerrarPanelLateral();
         }
+        if ($('visor-media').classList.contains('active') && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) moverVisorMedia(e.key === 'ArrowRight' ? 1 : -1);
       });
     });
   </script>

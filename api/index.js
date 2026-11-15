@@ -156,6 +156,8 @@ async function inicializarBD() {
   await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS cashback_pct NUMERIC NOT NULL DEFAULT 0`);
   // Varias imágenes por producto: arreglo JSON de URLs (la primera es la principal; imagen_url se conserva como respaldo)
   await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS imagenes JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  // Galería multimedia: conserva imagenes e imagen_url para compatibilidad con productos anteriores.
+  await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb`);
   await pool.query(`ALTER TABLE tienda_productos ADD COLUMN IF NOT EXISTS stock_controlado BOOLEAN NOT NULL DEFAULT false`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tienda_stock_variantes (
@@ -317,7 +319,8 @@ const requiereAdmin = ah(async (req, res, next) => {
 async function asegurarPerfil(db, u, extra = {}) {
   await db.query(
     `INSERT INTO tienda_perfiles (user_id, email, nombre, telefono) VALUES ($1, $2, $3, $4)
-     ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email`,
+     ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email,
+       nombre = COALESCE(NULLIF(tienda_perfiles.nombre, ''), EXCLUDED.nombre)`,
     [u.id, u.email, extra.nombre || (u.meta && u.meta.nombre) || null, extra.telefono || null]
   );
 }
@@ -325,9 +328,11 @@ function perfilPublico(p) {
   return { nombre: p.nombre || '', telefono: p.telefono || '', puntos: Number(p.puntos) || 0 };
 }
 async function respuestaSesion(session, user) {
+  const metadata = user.user_metadata || {};
   const u = {
     id: user.id, email: String(user.email || '').toLowerCase(),
-    confirmado: !!(user.email_confirmed_at || user.confirmed_at), meta: user.user_metadata || {}
+    confirmado: !!(user.email_confirmed_at || user.confirmed_at),
+    meta: Object.assign({}, metadata, { nombre: metadata.nombre || metadata.full_name || metadata.name || '' })
   };
   await asegurarPerfil(pool, u);
   const { rows } = await pool.query('SELECT nombre, telefono, puntos FROM tienda_perfiles WHERE user_id = $1', [u.id]);
@@ -342,16 +347,33 @@ async function respuestaSesion(session, user) {
 }
 
 // ---------- Imágenes (Supabase Storage) ----------
-const MIME_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const MIME_EXT = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+  'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov'
+};
+const MIME_IMAGENES = ['image/jpeg', 'image/png', 'image/webp'];
+const MIME_VIDEOS = ['video/mp4', 'video/webm', 'video/quicktime'];
+const MIME_STORAGE = Object.keys(MIME_EXT);
+const LIMITE_STORAGE = 50 * 1024 * 1024;
 let bucketListo = null;
 function asegurarBucket() {
   if (!bucketListo) {
     bucketListo = (async () => {
-      const { error } = await sbAdmin().storage.createBucket(BUCKET, {
-        public: true, fileSizeLimit: 5 * 1024 * 1024, allowedMimeTypes: Object.keys(MIME_EXT)
-      });
-      if (error && !/already exists|duplicate/i.test(error.message || '')) {
-        console.error('Storage bucket:', error.message);
+      const storage = sbAdmin().storage;
+      const options = { public: true, fileSizeLimit: LIMITE_STORAGE, allowedMimeTypes: MIME_STORAGE };
+      const { error } = await storage.createBucket(BUCKET, options);
+      if (error) {
+        if (/already exists|duplicate/i.test(error.message || '')) {
+          // Actualiza de forma aditiva el bucket que ya usaba la tienda para imágenes.
+          const { error: updateError } = await storage.updateBucket(BUCKET, options);
+          if (updateError) {
+            console.error('No se pudo actualizar la configuración del bucket para video:', updateError.message);
+            throw new HttpError(503, 'No se pudo habilitar el almacenamiento de videos. Revisa la configuración del bucket en Supabase Storage.');
+          }
+        } else {
+          console.error('Storage bucket:', error.message);
+          throw new HttpError(503, 'No se pudo preparar el almacenamiento multimedia en Supabase.');
+        }
       }
     })().catch(e => { bucketListo = null; throw e; });
   }
@@ -383,8 +405,14 @@ app.get('/api/health', ah(async (req, res) => {
   res.json({ ok: true, servicio: 'tienda-api' });
 }));
 app.get('/api/productos', ah(async (req, res) => {
-  const { rows } = await pool.query(`SELECT id, nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct, imagenes FROM tienda_productos ORDER BY id DESC`);
-  res.json(rows);
+  const { rows } = await pool.query(`SELECT id, nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct, imagenes, media FROM tienda_productos ORDER BY id DESC`);
+  res.json(rows.map(p => {
+    const legacyImages = Array.isArray(p.imagenes) ? p.imagenes : [];
+    const media = Array.isArray(p.media) && p.media.length
+      ? p.media.filter(m => m && ['image', 'video'].includes(m.type) && typeof m.url === 'string')
+      : legacyImages.map(url => ({ type: 'image', url }));
+    return Object.assign({}, p, { media });
+  }));
 }));
 
 app.get('/api/config', ah(async (req, res) => {
@@ -487,6 +515,35 @@ app.post('/api/auth/login', rateLimit({ max: 10, ventanaMs: 15 * 60 * 1000, mens
   const { data, error } = await sbAuth().auth.signInWithPassword({ email, password });
   if (error || !data || !data.session) throw new HttpError(401, traducirErrorAuth(error));
   res.json(await respuestaSesion(data.session, data.user));
+}));
+
+// Configuración pública necesaria para iniciar OAuth desde el navegador. La clave anon es pública;
+// la clave service_role nunca se devuelve al cliente.
+app.get('/api/auth/config', ah(async (req, res) => {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new HttpError(503, 'Falta configurar Supabase Auth en el servidor.');
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY });
+}));
+
+// Intercambia el código PKCE de Google por la sesión Supabase y devuelve el formato de sesión de JG.
+app.post('/api/auth/google/exchange', rateLimit({ max: 8, ventanaMs: 15 * 60 * 1000, mensaje: 'Demasiados intentos de inicio con Google. Inténtalo más tarde.' }), ah(async (req, res) => {
+  const code = str(req.body && req.body.code, 2048);
+  const verifier = String((req.body && req.body.code_verifier) || '');
+  if (!code || !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier)) {
+    throw new HttpError(400, 'La verificación de Google no es válida. Vuelve a intentarlo.');
+  }
+  const response = await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/auth/v1/token?grant_type=pkce`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ auth_code: code, code_verifier: verifier })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.access_token || !data.refresh_token || !data.user) {
+    console.warn('Intercambio PKCE de Google rechazado:', String(data.error_description || data.msg || data.message || response.status));
+    throw new HttpError(401, 'No se pudo iniciar sesión con Google. Comprueba la configuración de Google en Supabase e inténtalo de nuevo.');
+  }
+  if (!data.expires_at && data.expires_in) data.expires_at = Math.floor(Date.now() / 1000) + Number(data.expires_in);
+  res.json(await respuestaSesion(data, data.user));
 }));
 
 app.post('/api/auth/refresh', rateLimit({ max: 30, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
@@ -730,35 +787,64 @@ app.post('/api/imagenes', rateLimit({ max: 40, ventanaMs: 60 * 60 * 1000 }), req
   res.status(201).json({ url });
 }));
 
+// Firma temporal para que el navegador cargue el video directamente a Storage, sin enviar
+// el archivo por la función serverless de Vercel. El enlace firmado dura 2 horas.
+app.post('/api/videos/firma', rateLimit({ max: 30, ventanaMs: 60 * 60 * 1000 }), requiereAdmin, ah(async (req, res) => {
+  const mime = String(req.body && req.body.mime || '').toLowerCase();
+  if (!MIME_VIDEOS.includes(mime)) throw new HttpError(400, 'Formato de video no admitido. Usa MP4, WEBM o MOV.');
+  await asegurarBucket();
+  const ext = MIME_EXT[mime];
+  const path = `videos/${new Date().getFullYear()}/${Date.now()}-${crypto.randomBytes(8).toString('hex')}.${ext}`;
+  const { data, error } = await sbAdmin().storage.from(BUCKET).createSignedUploadUrl(path, { upsert: false });
+  if (error || !data || !data.signedUrl) {
+    console.error('No se pudo firmar la carga del video:', error && error.message);
+    throw new HttpError(502, 'No se pudo preparar la subida del video a Supabase.');
+  }
+  const publicUrl = sbAdmin().storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  res.status(201).json({ signedUrl: data.signedUrl, publicUrl, path, anonKey: SUPABASE_ANON_KEY });
+}));
+
 app.post('/api/productos', requiereAdmin, ah(async (req, res) => {
   const b = req.body || {};
   const nombre = str(b.nombre, 255);
   const precio = Number(b.precio);
   if (!nombre || !Number.isFinite(precio) || precio < 0) throw new HttpError(400, 'Nombre y precio válidos son obligatorios.');
   const cashback = pctValido(b.cashback_pct);
-  // Galería: arreglo de URLs (máx. 8). La primera es la imagen principal.
-  let imagenes = [];
-  if (b.imagenes !== undefined && b.imagenes !== null) {
-    if (!Array.isArray(b.imagenes)) throw new HttpError(400, 'El campo "imagenes" debe ser una lista de URLs.');
+  // Galería multimedia: hasta 8 imágenes y 3 videos (mantiene imagenes para versiones anteriores).
+  let media = [];
+  if (b.media !== undefined && b.media !== null) {
+    if (!Array.isArray(b.media) || b.media.length > 11) throw new HttpError(400, 'La galería admite hasta 8 imágenes y 3 videos.');
+    let cuentaImagenes = 0, cuentaVideos = 0;
+    media = b.media.map(m => {
+      if (!m || !['image', 'video'].includes(m.type) || typeof m.url !== 'string' || m.url.length > 1500 || !/^https?:\/\/\S+$/i.test(m.url)) {
+        throw new HttpError(400, 'Cada recurso multimedia debe tener tipo y URL válidos.');
+      }
+      if (m.type === 'image') cuentaImagenes++; else cuentaVideos++;
+      return { type: m.type, url: m.url };
+    });
+    if (cuentaImagenes > 8 || cuentaVideos > 3) throw new HttpError(400, 'La galería admite hasta 8 imágenes y 3 videos.');
+  } else if (Array.isArray(b.imagenes)) {
     if (b.imagenes.length > 8) throw new HttpError(400, 'Máximo 8 imágenes por producto.');
-    for (const u of b.imagenes) {
+    media = b.imagenes.map(u => {
       if (typeof u !== 'string' || u.length > 1000 || !/^https?:\/\/\S+$/i.test(u)) throw new HttpError(400, 'Cada imagen debe ser un enlace http(s) válido.');
-      imagenes.push(u);
-    }
+      return { type: 'image', url: u };
+    });
+  } else if (b.imagenes !== undefined && b.imagenes !== null) {
+    throw new HttpError(400, 'El campo "imagenes" debe ser una lista de URLs.');
   }
-  let imagen = String(b.imagen_url || '');
+  const imagenes = media.filter(m => m.type === 'image').map(m => m.url);
+  let imagen = imagenes[0] || String(b.imagen_url || '');
   if (imagen.startsWith('data:')) imagen = await subirImagenDataUri(imagen);
   else if (imagen && !/^https?:\/\//i.test(imagen)) imagen = '';
-  if (imagenes.length) imagen = imagenes[0];             // imagen_url siempre refleja la principal
-  else if (imagen) imagenes = [imagen];
+  if (!imagenes.length && imagen) { imagenes.push(imagen); media.unshift({ type: 'image', url: imagen }); }
   const redes = b.redes_json && typeof b.redes_json === 'object' ? b.redes_json : {};
   const { rows } = await pool.query(
     `INSERT INTO tienda_productos
-       (nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct, imagenes)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb) RETURNING id`,
+       (nombre, precio, descripcion, tallas, colores, imagen_url, whatsapp, redes_json, cashback_pct, imagenes, media)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11::jsonb) RETURNING id`,
     [nombre, precio, str(b.descripcion, 4000), str(b.tallas, 255), str(b.colores, 255), imagen,
      str(b.whatsapp, 50), JSON.stringify({ fb: str(redes.fb, 500), ig: str(redes.ig, 500) }), cashback,
-     JSON.stringify(imagenes)]
+     JSON.stringify(imagenes), JSON.stringify(media)]
   );
   res.status(201).json({ completado: true, id: rows[0].id });
 }));
@@ -788,13 +874,27 @@ app.put('/api/productos/:id', requiereAdmin, ah(async (req, res) => {
     const redes = b.redes_json && typeof b.redes_json === 'object' ? b.redes_json : {};
     add('redes_json', JSON.stringify({ fb: str(redes.fb, 500), ig: str(redes.ig, 500) }));
   }
-  if (Object.prototype.hasOwnProperty.call(b, 'imagenes')) {
+  if (Object.prototype.hasOwnProperty.call(b, 'media')) {
+    if (!Array.isArray(b.media) || b.media.length > 11) throw new HttpError(400, 'La galería admite hasta 8 imágenes y 3 videos.');
+    let cuentaImagenes = 0, cuentaVideos = 0;
+    const media = b.media.map(m => {
+      if (!m || !['image', 'video'].includes(m.type) || typeof m.url !== 'string' || m.url.length > 1500 || !/^https?:\/\/\S+$/i.test(m.url)) throw new HttpError(400, 'Cada recurso multimedia debe tener tipo y URL válidos.');
+      if (m.type === 'image') cuentaImagenes++; else cuentaVideos++;
+      return { type: m.type, url: m.url };
+    });
+    if (cuentaImagenes > 8 || cuentaVideos > 3) throw new HttpError(400, 'La galería admite hasta 8 imágenes y 3 videos.');
+    const imagenes = media.filter(m => m.type === 'image').map(m => m.url);
+    add('media', JSON.stringify(media));
+    add('imagenes', JSON.stringify(imagenes));
+    add('imagen_url', imagenes[0] || '');
+  } else if (Object.prototype.hasOwnProperty.call(b, 'imagenes')) {
     if (!Array.isArray(b.imagenes) || b.imagenes.length > 8) throw new HttpError(400, 'La galería debe contener como máximo 8 imágenes.');
     const imagenes = b.imagenes.map(u => {
       if (typeof u !== 'string' || u.length > 1000 || !/^https?:\/\/\S+$/i.test(u)) throw new HttpError(400, 'Cada imagen debe ser una URL HTTP(S) válida.');
       return u;
     });
     add('imagenes', JSON.stringify(imagenes));
+    add('media', JSON.stringify(imagenes.map(url => ({ type: 'image', url }))));
     add('imagen_url', imagenes[0] || '');
   }
   if (!fields.length) throw new HttpError(400, 'No se recibieron cambios para guardar.');

@@ -131,3 +131,16 @@ Las comprobaciones locales (`npm run check`) validan sintaxis del backend y fron
 - La API también exige un usuario autenticado al crear pedidos; no depende únicamente de la validación del navegador. Los pedidos nuevos quedan vinculados a la cuenta del cliente y aparecen en **Mis pedidos**.
 - En el paso de pago se muestra un aviso: el pago no se procesa directamente en la página; se puede pagar en efectivo al momento de la entrega o mediante el QR, compartiendo el comprobante por WhatsApp.
 - Se refinan estados hover, active, focus y disabled de los controles, campos, pestañas y tarjetas; se ajustan las superficies de modales y avisos de pago y se respeta la preferencia de movimiento reducido del dispositivo.
+
+
+## Acceso con Google y galería multimedia (v2.3.4)
+
+- El formulario de ingreso y registro incluye **Continuar con Google**. El flujo usa OAuth 2.0 con PKCE y Supabase Auth; la sesión obtenida se integra con el formato de sesión que ya utiliza la tienda.
+- La aplicación expone únicamente `SUPABASE_URL` y `SUPABASE_ANON_KEY` al navegador mediante `/api/auth/config`. `SUPABASE_SERVICE_ROLE_KEY` permanece en el servidor.
+- Para activar Google debes configurar el proveedor Google en Supabase Auth. En Google Cloud crea un OAuth Client ID de tipo Web, añade el dominio de la tienda como origen JavaScript autorizado y registra como URI de redirección la URL de callback que muestra Supabase (normalmente `https://<project-ref>.supabase.co/auth/v1/callback`). En Supabase, activa Google e introduce el Client ID y Client Secret. Añade el dominio final de Vercel a Authentication → URL Configuration → Redirect URLs. Consulta los pasos oficiales de Supabase antes de producción.
+- La galería de cada producto admite hasta 8 fotos y 3 videos (MP4, WEBM o MOV). Las fotos siguen pasando por compresión del navegador. Los videos se cargan directamente a Supabase Storage mediante una URL de carga firmada temporal, por lo que el archivo no atraviesa la función serverless de Vercel.
+- Los productos antiguos siguen usando `imagenes` e `imagen_url`; se mantiene compatibilidad y se añade `tienda_productos.media` como JSONB para conservar el tipo y la URL de cada recurso.
+- El detalle del producto muestra fotos y videos, controles de galería y visor ampliado para pantalla completa. Los videos disponen de controles de reproducción.
+- El bucket de Storage usado por la tienda se amplía para admitir MP4, WEBM y MOV y un máximo de 50 MB por archivo. El formulario limita los videos a 30 MB para una subida más manejable.
+
+La migración `media` es aditiva: no elimina ni sustituye los campos ni las fotos anteriores. El proveedor Google no se activa automáticamente desde el código; requiere la configuración externa de OAuth en Google Cloud y Supabase.

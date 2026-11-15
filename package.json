@@ -1,7 +1,7 @@
 {
   "name": "productos-en-linea",
-  "version": "2.3.3",
-  "description": "Tienda virtual JG con inventario, finanzas, promociones y gestión de exclusión/archivo de pedidos.",
+  "version": "2.3.4",
+  "description": "Tienda virtual JG con autenticación Google y galería de fotos y videos, inventario, finanzas y promociones.",
   "main": "api/index.js",
   "scripts": {
     "start": "node --env-file-if-exists=.env api/index.js",
