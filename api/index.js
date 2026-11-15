@@ -517,35 +517,6 @@ app.post('/api/auth/login', rateLimit({ max: 10, ventanaMs: 15 * 60 * 1000, mens
   res.json(await respuestaSesion(data.session, data.user));
 }));
 
-// Configuración pública necesaria para iniciar OAuth desde el navegador. La clave anon es pública;
-// la clave service_role nunca se devuelve al cliente.
-app.get('/api/auth/config', ah(async (req, res) => {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new HttpError(503, 'Falta configurar Supabase Auth en el servidor.');
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY });
-}));
-
-// Intercambia el código PKCE de Google por la sesión Supabase y devuelve el formato de sesión de JG.
-app.post('/api/auth/google/exchange', rateLimit({ max: 8, ventanaMs: 15 * 60 * 1000, mensaje: 'Demasiados intentos de inicio con Google. Inténtalo más tarde.' }), ah(async (req, res) => {
-  const code = str(req.body && req.body.code, 2048);
-  const verifier = String((req.body && req.body.code_verifier) || '');
-  if (!code || !/^[A-Za-z0-9._~-]{43,128}$/.test(verifier)) {
-    throw new HttpError(400, 'La verificación de Google no es válida. Vuelve a intentarlo.');
-  }
-  const response = await fetch(`${SUPABASE_URL.replace(/\/+$/, '')}/auth/v1/token?grant_type=pkce`, {
-    method: 'POST',
-    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ auth_code: code, code_verifier: verifier })
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data.access_token || !data.refresh_token || !data.user) {
-    console.warn('Intercambio PKCE de Google rechazado:', String(data.error_description || data.msg || data.message || response.status));
-    throw new HttpError(401, 'No se pudo iniciar sesión con Google. Comprueba la configuración de Google en Supabase e inténtalo de nuevo.');
-  }
-  if (!data.expires_at && data.expires_in) data.expires_at = Math.floor(Date.now() / 1000) + Number(data.expires_in);
-  res.json(await respuestaSesion(data, data.user));
-}));
-
 app.post('/api/auth/refresh', rateLimit({ max: 30, ventanaMs: 15 * 60 * 1000 }), ah(async (req, res) => {
   const refresh_token = String(req.body.refresh_token || '');
   if (!refresh_token) throw new HttpError(400, 'Falta el token de renovación.');

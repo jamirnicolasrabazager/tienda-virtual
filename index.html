@@ -178,11 +178,6 @@
     .media-viewer-nav.prev { left:20px;top:50%;transform:translateY(-50%); }
     .media-viewer-nav.next { right:20px;top:50%;transform:translateY(-50%); }
     .media-viewer-counter { position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(20,20,24,.72);padding:6px 12px;border-radius:999px;font-size:13px; }
-    .google-auth-btn { display:flex;align-items:center;justify-content:center;gap:11px;width:100%;margin-top:13px;padding:11px 14px;border:1px solid #dadce0;border-radius:11px;background:#fff;color:#303134;font-weight:650;cursor:pointer;transition:background .18s,border-color .18s,transform .18s; }
-    .google-auth-btn:hover { background:#f8f9fa;border-color:#b8bcc2;transform:translateY(-1px); }
-    .google-auth-btn:disabled { opacity:.6;cursor:wait;transform:none; }
-    .google-auth-divider { display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:12px; }
-    .google-auth-divider::before,.google-auth-divider::after { content:"";height:1px;flex:1;background:var(--border); }
     @media (max-width:560px) { .media-viewer { padding:10px; } .media-viewer-close { top:10px;right:10px; } .media-viewer-nav.prev { left:8px; } .media-viewer-nav.next { right:8px; } .media-viewer-nav,.media-viewer-close { width:40px;height:40px; } }
     .galeria-principal img.desvanecida { opacity: 0; transform: scale(1.02); }
     .galeria-flecha {
@@ -1010,13 +1005,6 @@
       <input type="email" id="auth-email" class="form-control" placeholder="Correo electrónico" autocomplete="email">
       <input type="password" id="auth-pass" class="form-control" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="current-password" onkeydown="if(event.key==='Enter') enviarAuth()">
       <button class="btn" id="auth-submit" style="width:100%;" onclick="enviarAuth()">Ingresar</button>
-      <div id="auth-google-wrap">
-        <div class="google-auth-divider">o continúa con</div>
-        <button type="button" class="google-auth-btn" id="btn-google-auth" onclick="iniciarSesionGoogle()">
-          <svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.05 13.22l7.98 6.19C11.97 13.72 17.45 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.73 7.18l7.7 5.98c4.5-4.16 7.07-10.28 7.07-17.63z"/><path fill="#FBBC05" d="M10.03 28.59A14.4 14.4 0 0 1 9.25 24c0-1.59.27-3.13.75-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.57 10.78l7.46-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.82l-7.7-5.98c-2.13 1.43-4.85 2.28-8.21 2.28-6.55 0-12.03-4.22-14-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-          Continuar con Google
-        </button>
-      </div>
       <p id="auth-cambiar" style="text-align:center; font-size:14px; margin-bottom:0;"></p>
     </div>
   </div>
@@ -1095,7 +1083,6 @@
     let modoAuth = 'login';
     let authParaAdmin = false;
     let continuarCheckoutTrasAuth = false;
-    let googleCallbackContext = null;
     let stockAdminRows = [];
     let variantesStockActuales = [];
     let productoStockActualId = null;
@@ -1992,60 +1979,6 @@
         : '¿Eres nuevo? <a href="#" onclick="cambiarModoAuth(\'registro\'); return false;" style="color:var(--primary); font-weight:bold;">Crear cuenta</a>');
     }
 
-    function bytesBase64Url(bytes) {
-      let bin = ''; for (const b of bytes) bin += String.fromCharCode(b);
-      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-    }
-    async function iniciarSesionGoogle() {
-      const btn = $('btn-google-auth');
-      if (!window.crypto || !crypto.subtle || !crypto.getRandomValues) return alert('Tu navegador no permite iniciar sesión segura con Google. Actualízalo o utiliza HTTPS.');
-      btn.disabled = true; btn.textContent = 'Conectando con Google...';
-      try {
-        const cfg = await apiFetch('/api/auth/config', { noAuth: true });
-        const random = new Uint8Array(64); crypto.getRandomValues(random);
-        const verifier = bytesBase64Url(random);
-        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-        const challenge = bytesBase64Url(new Uint8Array(digest));
-        const redirectTo = new URL(window.location.href);
-        redirectTo.search = ''; redirectTo.hash = '';
-        sessionStorage.setItem('jg_google_pkce_verifier', verifier);
-        sessionStorage.setItem('jg_google_checkout', continuarCheckoutTrasAuth ? '1' : '0');
-        sessionStorage.setItem('jg_google_admin', authParaAdmin ? '1' : '0');
-        const authUrl = new URL(cfg.url.replace(/\/+$/, '') + '/auth/v1/authorize');
-        authUrl.searchParams.set('provider', 'google');
-        authUrl.searchParams.set('redirect_to', redirectTo.toString());
-        authUrl.searchParams.set('code_challenge', challenge);
-        authUrl.searchParams.set('code_challenge_method', 's256');
-        window.location.assign(authUrl.toString());
-      } catch (e) {
-        alert(e.message || 'No se pudo iniciar la autenticación con Google.');
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="19" height="19" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.73 7.18l7.7 5.98c4.5-4.16 7.07-10.28 7.07-17.63z"/><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.05 13.22l7.98 6.19C11.97 13.72 17.45 9.5 24 9.5z"/></svg> Continuar con Google';
-      }
-    }
-    async function procesarCallbackGoogle() {
-      const current = new URL(window.location.href);
-      const code = current.searchParams.get('code');
-      const oauthError = current.searchParams.get('error_description') || current.searchParams.get('error');
-      if (!code && !oauthError) return null;
-      const verifier = sessionStorage.getItem('jg_google_pkce_verifier') || '';
-      googleCallbackContext = {
-        checkout: sessionStorage.getItem('jg_google_checkout') === '1',
-        admin: sessionStorage.getItem('jg_google_admin') === '1'
-      };
-      sessionStorage.removeItem('jg_google_checkout');
-      sessionStorage.removeItem('jg_google_admin');
-      sessionStorage.removeItem('jg_google_pkce_verifier');
-      current.searchParams.delete('code'); current.searchParams.delete('state');
-      current.searchParams.delete('error'); current.searchParams.delete('error_description');
-      window.history.replaceState({}, document.title, current.pathname + current.search + current.hash);
-      if (oauthError) throw new Error(String(oauthError).replace(/\+/g, ' '));
-      if (!verifier || !code) throw new Error('La sesión de Google no pudo verificarse. Vuelve a intentarlo.');
-      const d = await apiFetch('/api/auth/google/exchange', { method: 'POST', noAuth: true, body: { code, code_verifier: verifier } });
-      sesion = { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user, es_admin: d.es_admin, perfil: d.perfil };
-      guardarLS('jg_sesion', sesion);
-      return googleCallbackContext;
-    }
     async function enviarAuth() {
       const email = $('auth-email').value.trim();
       const password = $('auth-pass').value;
@@ -2566,18 +2499,10 @@
     })();
 
     window.addEventListener('DOMContentLoaded', async () => {
-      try { await procesarCallbackGoogle(); }
-      catch (e) { console.error('Google OAuth:', e); alert(e.message || 'No se pudo completar el inicio con Google.'); }
       renderHeader();
       guardarCarrito();
       await cargarAplicacionCompleta();
       if (sesion) await actualizarPerfil();
-      if (googleCallbackContext && googleCallbackContext.admin) {
-        if (sesion && sesion.es_admin) irAVista('admin');
-        else alert('La cuenta de Google no tiene permisos de administrador.');
-      } else if (googleCallbackContext && googleCallbackContext.checkout && sesion) {
-        irAPago();
-      }
       document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
           if ($('modal-auth').classList.contains('active')) cerrarAuth();
