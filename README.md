@@ -78,7 +78,7 @@ Si tu frontend y API usan dominios distintos, agrega el origen exacto del fronte
 
 Al iniciar la API se añaden, si faltan, `tienda_promociones.inicia_en`, `tienda_pedidos.nota_admin` y `tienda_pedidos.imagenes`. No se eliminan ni se reemplazan columnas o datos existentes. La migración se ejecuta automáticamente con la conexión PostgreSQL configurada en `DATABASE_URL`.
 
-Los pedidos hechos **con sesión iniciada** quedan asociados al perfil y aparecen en **Mis pedidos**. Los pedidos hechos como invitado pueden consultarse desde esa misma interfaz con el código JG y los últimos cuatro dígitos del celular.
+Los pedidos hechos **con sesión iniciada** quedan asociados al perfil y aparecen en **Mis pedidos**. Los pedidos antiguos realizados como invitado pueden consultarse desde esa misma interfaz con el código JG y los últimos cuatro dígitos del celular. Desde la versión 2.3.3, los nuevos pedidos requieren iniciar sesión.
 
 ## Verificaciones realizadas para esta entrega
 
@@ -123,3 +123,11 @@ Las comprobaciones locales (`npm run check`) validan sintaxis del backend y fron
 - En **Historial de compras**, el botón **Borrar pedido** excluye el pedido de los resúmenes financieros, ingresos y gráficos de ganancias brutas/netas. El pedido sigue visible en el historial administrativo con la marca **Excluido de finanzas**.
 - Después aparece **Quitar de registro**. Al utilizarlo, el pedido deja de mostrarse en el historial administrativo. El registro se conserva internamente para mantener la trazabilidad; tampoco se alteran el inventario ni los puntos/cashback del cliente.
 - La API añade automáticamente las columnas `tienda_pedidos.excluido_finanzas` y `tienda_pedidos.oculto_registro` si todavía no existen. Los pedidos actuales quedan incluidos en estadísticas por defecto.
+
+
+## Inicio de sesión obligatorio y mejoras visuales (v2.3.3)
+
+- Para finalizar una compra, el cliente debe iniciar sesión o crear una cuenta. El carrito puede prepararse sin iniciar sesión y se conserva mientras el cliente accede a su cuenta. Tras un inicio de sesión correcto, el proceso de compra continúa automáticamente.
+- La API también exige un usuario autenticado al crear pedidos; no depende únicamente de la validación del navegador. Los pedidos nuevos quedan vinculados a la cuenta del cliente y aparecen en **Mis pedidos**.
+- En el paso de pago se muestra un aviso: el pago no se procesa directamente en la página; se puede pagar en efectivo al momento de la entrega o mediante el QR, compartiendo el comprobante por WhatsApp.
+- Se refinan estados hover, active, focus y disabled de los controles, campos, pestañas y tarjetas; se ajustan las superficies de modales y avisos de pago y se respeta la preferencia de movimiento reducido del dispositivo.

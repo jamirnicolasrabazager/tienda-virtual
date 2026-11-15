@@ -397,6 +397,168 @@
       .product-card-body p { display: none; }
       .miniatura { flex-basis: 64px; height: 64px; }
     }
+  
+
+    /* ----- Acabado visual e interacciones refinadas ----- */
+    :root {
+      --ui-ease: cubic-bezier(.2,.75,.25,1);
+      --ui-line: rgba(35, 28, 48, .08);
+      --ui-glow: 0 0 0 4px var(--primary-ring);
+    }
+    body {
+      background:
+        radial-gradient(ellipse at 8% 0%, rgba(123, 63, 228, .055), transparent 34%),
+        radial-gradient(ellipse at 96% 18%, rgba(74, 20, 140, .035), transparent 30%),
+        var(--light);
+    }
+    header {
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(14, 14, 16, .97);
+    }
+    .logo { transition: opacity .2s ease, transform .2s var(--ui-ease); }
+    .logo:hover { opacity: .92; transform: translateY(-1px); }
+    button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+    button:not(:disabled) { touch-action: manipulation; }
+    button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible {
+      outline: 3px solid var(--primary-ring);
+      outline-offset: 3px;
+    }
+    .btn {
+      position: relative;
+      overflow: hidden;
+      transform: translateY(0);
+      transition: transform .18s var(--ui-ease), box-shadow .22s var(--ui-ease), background .2s ease, border-color .2s ease, color .2s ease, filter .2s ease;
+    }
+    .btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: saturate(1.06);
+    }
+    .btn:active:not(:disabled) {
+      transform: translateY(0) scale(.985);
+      transition-duration: .08s;
+    }
+    .btn:disabled { filter: grayscale(.12); }
+    .btn-secondary:hover:not(:disabled) {
+      color: var(--primary-dark);
+      border-color: rgba(74, 20, 140, .25);
+    }
+    .tab-btn { transition: color .18s ease, background .18s ease, transform .18s var(--ui-ease), box-shadow .18s ease; }
+    .tab-btn:hover { transform: translateY(-1px); }
+    .tab-btn:active { transform: scale(.98); }
+    .form-control {
+      min-height: 44px;
+      box-shadow: 0 1px 1px rgba(14, 14, 16, .025);
+      transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .form-control:hover:not(:focus) { border-color: #ceccd7; }
+    .form-control:focus { box-shadow: var(--ui-glow); }
+    .product-card {
+      border-color: var(--ui-line);
+      box-shadow: 0 3px 12px rgba(22, 16, 35, .045), 0 1px 2px rgba(22, 16, 35, .035);
+    }
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 18px 34px -18px rgba(47, 25, 76, .38), 0 8px 18px rgba(22, 16, 35, .07);
+    }
+    .modal { transition: background .2s ease; }
+    .modal-content {
+      border: 1px solid rgba(255,255,255,.55);
+      box-shadow: 0 28px 80px rgba(10, 8, 18, .32), 0 4px 18px rgba(10, 8, 18, .12);
+    }
+    .modal-close { border: 1px solid rgba(30, 25, 40, .06); }
+    .quick-rail button { transition: color .18s ease, background .18s ease, transform .18s var(--ui-ease); }
+    .quick-rail button:hover { transform: translateX(2px); }
+    .quick-rail button:focus-visible { outline: 3px solid var(--primary-ring); outline-offset: 2px; }
+    .social-links a, .promo-card, .order-card, .admin-box, .stat-card {
+      transition: border-color .2s ease, box-shadow .22s var(--ui-ease), transform .22s var(--ui-ease);
+    }
+    .social-links a:hover { transform: translateX(2px); border-color: rgba(74,20,140,.24); }
+    .promo-card:hover, .order-card:hover, .stat-card:hover {
+      border-color: rgba(74,20,140,.2);
+      box-shadow: var(--shadow-md);
+    }
+    .cart-item { transition: background .18s ease; }
+    .cart-item:hover { background: linear-gradient(90deg, rgba(243,236,251,.45), transparent); }
+    .qty-box button { transition: color .16s ease, background .16s ease, border-color .16s ease, transform .12s ease; }
+    .qty-box button:active { transform: scale(.93); }
+    .payment-notice {
+      display: grid;
+      grid-template-columns: 34px minmax(0,1fr);
+      gap: 12px;
+      align-items: start;
+      margin: 0 0 16px;
+      padding: 15px 16px;
+      text-align: left;
+      border: 1px solid rgba(74,20,140,.16);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #faf7ff, #f3ecfb);
+      color: var(--graphite);
+    }
+    .payment-notice-icon {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+      font-size: 17px;
+    }
+    .payment-notice strong { display: block; color: var(--primary-dark); font-size: 13.5px; }
+    .payment-notice p { margin: 4px 0 0; color: #55515e; font-size: 12.5px; line-height: 1.55; }
+    .payment-details { padding-top: 2px; }
+    .checkout-login-notice {
+      display: grid;
+      grid-template-columns: 38px minmax(0,1fr);
+      gap: 12px;
+      align-items: start;
+      margin: 14px 0;
+      padding: 15px;
+      border: 1px solid rgba(74,20,140,.17);
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fbf9ff, #f3ecfb);
+    }
+    .checkout-login-icon {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+      font-size: 19px;
+    }
+    .checkout-login-copy strong { color: var(--primary-dark); font-size: 14px; }
+    .checkout-login-copy p { margin: 4px 0 11px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+    .checkout-login-copy .btn { padding: 9px 13px; font-size: 12.5px; }
+    .auth-context-notice {
+      margin: -4px 0 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(74,20,140,.15);
+      border-radius: 12px;
+      background: var(--primary-soft);
+      color: var(--graphite);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    #nav-buttons { gap: 10px !important; }
+    @media (max-width: 560px) {
+      .payment-notice { grid-template-columns: 28px minmax(0,1fr); gap: 9px; padding: 12px; }
+      .payment-notice-icon { width: 28px; height: 28px; }
+      .checkout-login-notice { grid-template-columns: 32px minmax(0,1fr); gap: 9px; padding: 12px; }
+      .checkout-login-icon { width: 32px; height: 32px; }
+      #nav-buttons { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -744,8 +906,13 @@
               <button class="btn btn-secondary" style="padding:8px 12px;" onclick="usarMaximoPuntos()">Usar máximo</button>
             </div>
           </div>
-          <div id="puntos-invitado" class="caja-info" style="display:none;">
-            ¿Tienes cuenta? <a href="#" onclick="abrirAuth(false); return false;" style="color:var(--primary); font-weight:bold;">Inicia sesión</a> para ganar cashback y usar tus puntos como descuento.
+          <div id="puntos-invitado" class="checkout-login-notice" style="display:none;">
+            <div class="checkout-login-icon" aria-hidden="true">🔐</div>
+            <div class="checkout-login-copy">
+              <strong>Inicia sesión para realizar tu compra</strong>
+              <p>Necesitas una cuenta para finalizar el pedido y consultar su seguimiento. Tu carrito se conservará mientras ingresas.</p>
+              <button type="button" class="btn btn-secondary" onclick="abrirAuth(false, true)">Iniciar sesión o crear cuenta</button>
+            </div>
           </div>
           <div class="coupon-row">
             <input type="text" id="cupon-codigo" class="form-control" style="margin:0;" maxlength="40" placeholder="Código promocional">
@@ -791,6 +958,7 @@
     <div class="modal-content" style="grid-template-columns: 1fr; max-width: 420px; display:block;">
       <span class="modal-close" onclick="cerrarAuth()">×</span>
       <h2 id="auth-titulo" style="margin-top:0;">Ingresar</h2>
+      <p id="auth-aviso-compra" class="auth-context-notice" style="display:none;">Para proteger tus pedidos y permitirte consultar su estado, inicia sesión o crea una cuenta. Al terminar, volverás automáticamente al proceso de compra.</p>
       <p id="auth-aviso-admin" style="display:none; color:var(--muted); font-size:14px;">Acceso exclusivo para administradores.</p>
       <div id="auth-campos-registro" style="display:none;">
         <input type="text" id="auth-nombre" class="form-control" placeholder="Nombre completo" maxlength="120">
@@ -874,6 +1042,7 @@
     let vistaActual = 'publica';
     let modoAuth = 'login';
     let authParaAdmin = false;
+    let continuarCheckoutTrasAuth = false;
     let stockAdminRows = [];
     let variantesStockActuales = [];
     let productoStockActualId = null;
@@ -1234,7 +1403,8 @@
     function renderCarrito() {
       const cont = $('carrito-items');
       $('puntos-logueado').style.display = sesion ? 'block' : 'none';
-      $('puntos-invitado').style.display = sesion ? 'none' : 'block';
+      $('puntos-invitado').style.display = sesion ? 'none' : 'grid';
+      $('btn-ir-pago').textContent = sesion ? 'Continuar con el pago' : 'Iniciar sesión para comprar';
       if (!carrito.length) {
         cont.innerHTML = "<p style='text-align:center; color:var(--muted); padding:30px 0;'>Tu carrito está vacío.</p>";
         $('carrito-resumen').style.display = 'none';
@@ -1279,7 +1449,12 @@
     function htmlPago(total) {
       const qr = urlLink(cacheConfig.cfg_qr_pago);
       const banco = cacheConfig.cfg_banco_datos || '';
-      let h = '<div style="text-align:center;">';
+      let h = `<section class="payment-notice" role="note" aria-label="Información sobre las formas de pago">
+        <span class="payment-notice-icon" aria-hidden="true">ℹ️</span>
+        <div><strong>Información importante sobre el pago</strong>
+          <p>Por el momento, esta página no permite realizar el pago directamente. Puedes pagar en efectivo al momento de la entrega o mediante el código QR que aparece a continuación. Si eliges QR, envía el comprobante por WhatsApp para verificarlo.</p>
+        </div>
+      </section><div class="payment-details" style="text-align:center;">`;
       if (qr) {
         h += `<img class="qr-img" src="${esc(qr)}" alt="QR de pago">`;
         // Enlace real con "download": la API responde con Content-Disposition: attachment (descarga forzada nativa)
@@ -1331,6 +1506,11 @@
     function irAPago() {
       const t = calcularTotales();
       if (!t.lineas.length) return;
+      if (!sesion || !sesion.access_token) {
+        continuarCheckoutTrasAuth = true;
+        abrirAuth(false, true);
+        return;
+      }
       if (sesion && sesion.perfil) {
         if (!$('co-nombre').value) $('co-nombre').value = sesion.perfil.nombre || '';
         if (!$('co-tel').value) $('co-tel').value = (sesion.perfil.telefono || '').replace('+591', '');
@@ -1387,6 +1567,11 @@
     }
 
     async function confirmarPedido() {
+      if (!sesion || !sesion.access_token) {
+        continuarCheckoutTrasAuth = true;
+        abrirAuth(false, true);
+        return;
+      }
       const t = calcularTotales();
       if (!t.lineas.length) return;
       const nombre = $('co-nombre').value.trim();
@@ -1414,7 +1599,12 @@
         if (sesion) await actualizarPerfil();
         mostrarComprobante(d.pedido);
       } catch (e) {
-        alert(e.message);
+        if (e.status === 401) {
+          continuarCheckoutTrasAuth = true;
+          abrirAuth(false, true);
+        } else {
+          alert(e.message);
+        }
       } finally {
         btn.disabled = false; btn.innerText = 'Confirmar pedido';
       }
@@ -1674,13 +1864,19 @@
       }
       renderHeader(); renderCarrito();
     }
-    function abrirAuth(paraAdmin) {
+    function abrirAuth(paraAdmin, paraCompra) {
       authParaAdmin = !!paraAdmin;
+      if (paraCompra) continuarCheckoutTrasAuth = true;
       $('auth-aviso-admin').style.display = authParaAdmin ? 'block' : 'none';
+      $('auth-aviso-compra').style.display = (!authParaAdmin && paraCompra) ? 'block' : 'none';
       cambiarModoAuth('login');
       $('modal-auth').classList.add('active');
     }
-    function cerrarAuth() { $('modal-auth').classList.remove('active'); }
+    function cerrarAuth() {
+      $('modal-auth').classList.remove('active');
+      continuarCheckoutTrasAuth = false;
+      $('auth-aviso-compra').style.display = 'none';
+    }
     function cambiarModoAuth(modo) {
       modoAuth = authParaAdmin ? 'login' : modo;
       const reg = modoAuth === 'registro';
@@ -1708,10 +1904,15 @@
         sesion = { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user, es_admin: d.es_admin, perfil: d.perfil };
         guardarLS('jg_sesion', sesion);
         $('auth-pass').value = '';
+        const accesoAdmin = authParaAdmin;
+        const reanudarCompra = continuarCheckoutTrasAuth;
         cerrarAuth(); renderHeader(); renderCarrito();
-        if (authParaAdmin) {
+        if (accesoAdmin) {
           if (sesion.es_admin) irAVista('admin');
           else alert('Esta cuenta no tiene permisos de administrador.');
+        } else if (reanudarCompra) {
+          await actualizarPerfil();
+          irAPago();
         }
       } catch (e) {
         alert(e.message);
@@ -2186,6 +2387,7 @@
       if (sesion) await actualizarPerfil();
       document.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
+          if ($('modal-auth').classList.contains('active')) cerrarAuth();
           document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
           cerrarPanelLateral();
         }

@@ -560,7 +560,7 @@ app.get('/api/promociones', rateLimit({ max: 60, ventanaMs: 15 * 60 * 1000 }), a
   res.json(rows);
 }));
 
-// ---------- Crear pedido (cliente invitado o con cuenta) ----------
+// ---------- Crear pedido (solo cliente con sesión autenticada) ----------
 function itemsPublicos(items) {
   return (Array.isArray(items) ? items : []).map(({ costo_unitario, costo_total, ...item }) => item);
 }
@@ -575,7 +575,7 @@ function formatearPedido(p) {
   };
 }
 
-app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje: 'Has realizado demasiados pedidos. Inténtalo más tarde.' }), opcional, ah(async (req, res) => {
+app.post('/api/pedidos', rateLimit({ max: 20, ventanaMs: 60 * 60 * 1000, mensaje: 'Has realizado demasiados pedidos. Inténtalo más tarde.' }), requiereUsuario, ah(async (req, res) => {
   const b = req.body || {};
   const itemsIn = Array.isArray(b.items) ? b.items : [];
   if (!itemsIn.length || itemsIn.length > 50) throw new HttpError(400, 'El carrito está vacío.');
